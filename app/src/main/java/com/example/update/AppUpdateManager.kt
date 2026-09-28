@@ -142,15 +142,21 @@ class AppUpdateManager(private val context: Context) {
 
                         val assets = latestRelease.optJSONArray("assets")
                         if (assets != null) {
+                            var bestUrl = ""
                             for (i in 0 until assets.length()) {
                                 val asset = assets.getJSONObject(i)
                                 val assetName = asset.optString("name", "")
                                 val dl = asset.optString("browser_download_url", "")
-                                if (assetName.endsWith(".apk", ignoreCase = true) || dl.endsWith(".apk", ignoreCase = true)) {
-                                    apkUrl = dl
-                                    break
+                                if (dl.endsWith(".apk", ignoreCase = true)) {
+                                    if (assetName.contains("EchoOfBattle", ignoreCase = true)) {
+                                        bestUrl = dl
+                                        break
+                                    } else if (bestUrl.isBlank()) {
+                                        bestUrl = dl
+                                    }
                                 }
                             }
+                            apkUrl = bestUrl
                         }
 
                         if (apkUrl.isNotBlank()) {
@@ -243,7 +249,7 @@ class AppUpdateManager(private val context: Context) {
 
             val totalBytes = redirectConnection.contentLength.toLong()
             val updateDir = File(context.cacheDir, "updates").apply { if (!exists()) mkdirs() }
-            val apkFile = File(updateDir, "update.apk")
+            val apkFile = File(updateDir, "EchoOfBattle-Update.apk")
             if (apkFile.exists()) apkFile.delete()
 
             redirectConnection.inputStream.use { input ->

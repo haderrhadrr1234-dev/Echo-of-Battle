@@ -83,7 +83,7 @@ jobs:
           ORIGINAL_APK="app/build/outputs/apk/debug/app-debug.apk"
           if [ -f "$ORIGINAL_APK" ]; then
             echo "✅ APK generated successfully at $ORIGINAL_APK"
-            cp "$ORIGINAL_APK" release_assets/app-debug.apk
+            cp "$ORIGINAL_APK" release_assets/EchoOfBattle.apk
             cp "$ORIGINAL_APK" "release_assets/EchoOfBattle-${{ steps.version_step.outputs.tag }}.apk"
             ls -lh release_assets/
           else
@@ -96,9 +96,9 @@ jobs:
           cat <<EOF > release_assets/version.json
           {
             "version": "${{ steps.version_step.outputs.version }}",
-            "title": "تحديث جديد - صدى المعركة ${{ steps.version_step.outputs.tag }}",
-            "notes": "تم بناء هذا الإصدار ونشره تلقائياً بالكامل عبر مشغل GitHub Actions بتاريخ ${{ steps.version_step.outputs.date }} مع قاعدة بيانات جوجل فايربيز (Firebase) الجديدة.",
-            "download_url": "https://github.com/${{ github.repository }}/releases/download/${{ steps.version_step.outputs.tag }}/app-debug.apk"
+            "title": "صدى المعركة ${{ steps.version_step.outputs.tag }}",
+            "notes": "تم بناء وتحديث هذا الإصدار تلقائياً بالكامل مع قاعدة بيانات جوجل فايربيز (Firebase) السحابية.",
+            "download_url": "https://github.com/${{ github.repository }}/releases/download/${{ steps.version_step.outputs.tag }}/EchoOfBattle.apk"
           }
           EOF
           cp release_assets/version.json version.json
@@ -124,7 +124,7 @@ jobs:
           tag_name: ${{ steps.version_step.outputs.tag }}
           name: "⚔️ صدى المعركة (Echo of Battle) - ${{ steps.version_step.outputs.tag }}"
           body: |
-            ## 🚀 تم بناء وتحديث اللعبة بنجاح عبر GitHub Actions
+            ## 🚀 تم بناء وتحديث اللعبة بنجاح عبر سحابة GitHub Actions
             
             - **الإصدار:** `${{ steps.version_step.outputs.tag }}`
             - **قاعدة البيانات:** Google Firebase Cloud Firestore & Auth (فايربيز السحابية من جوجل)
@@ -132,10 +132,9 @@ jobs:
             - **طريقة البناء:** تلقائي ومباشر 100% فور رفع التعديلات.
             
             ---
-            ### 📥 روابط التحميل المباشر لملف الـ APK:
-            1. **[تحميل EchoOfBattle-${{ steps.version_step.outputs.tag }}.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_step.outputs.tag }}/EchoOfBattle-${{ steps.version_step.outputs.tag }}.apk)**
-            2. **[تحميل app-debug.apk (للتحديث التلقائي)](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_step.outputs.tag }}/app-debug.apk)**
-
+            ### 📥 رابط التحميل المباشر للعبة:
+            👉 **[تحميل EchoOfBattle.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.version_step.outputs.tag }}/EchoOfBattle.apk)**
+            
             ---
             ### 🌟 الميزات والتعديلات الجديدة:
             - **قاعدة بيانات فايربيز من جوجل (Google Firebase)** لحفظ الذهب والعتاد والمستوى أونلاين.
@@ -144,7 +143,7 @@ jobs:
             - **ناطق صوتي باللغة العربية واهتزازات تفاعلية للمكفوفين**.
             - **نظام التحديث التلقائي المباشر** داخل اللعبة فور توفر أي إصدار جديد.
           files: |
-            release_assets/app-debug.apk
+            release_assets/EchoOfBattle.apk
             release_assets/EchoOfBattle-${{ steps.version_step.outputs.tag }}.apk
             release_assets/version.json
           draft: false
