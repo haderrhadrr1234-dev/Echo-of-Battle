@@ -33,12 +33,19 @@ data class CloudUserProfile(
     val level: Int = 1,
     val xp: Int = 0,
     val gold: Int = 500,
+    val gems: Int = 50,
     val wins: Int = 0,
     val losses: Int = 0,
     val equippedWeaponId: Int = 1,
     val equippedSuperpowerId: Int = 1,
+    val equippedArmorId: Int = 1,
+    val equippedPetId: Int = 1,
+    val weaponUpgradeLevel: Int = 0,
+    val highestRaidDefeated: Int = 0,
     val unlockedWeaponIds: List<Int> = listOf(1),
     val unlockedSuperpowerIds: List<Int> = listOf(1),
+    val unlockedArmorIds: List<Int> = listOf(1),
+    val unlockedPetIds: List<Int> = listOf(1),
     val lastCloudSyncTimestamp: Long = System.currentTimeMillis()
 ) {
     fun toMap(): Map<String, Any> {
@@ -51,12 +58,19 @@ data class CloudUserProfile(
             "level" to level,
             "xp" to xp,
             "gold" to gold,
+            "gems" to gems,
             "wins" to wins,
             "losses" to losses,
             "equippedWeaponId" to equippedWeaponId,
             "equippedSuperpowerId" to equippedSuperpowerId,
+            "equippedArmorId" to equippedArmorId,
+            "equippedPetId" to equippedPetId,
+            "weaponUpgradeLevel" to weaponUpgradeLevel,
+            "highestRaidDefeated" to highestRaidDefeated,
             "unlockedWeaponIds" to unlockedWeaponIds,
             "unlockedSuperpowerIds" to unlockedSuperpowerIds,
+            "unlockedArmorIds" to unlockedArmorIds,
+            "unlockedPetIds" to unlockedPetIds,
             "lastCloudSyncTimestamp" to lastCloudSyncTimestamp
         )
     }
@@ -65,6 +79,8 @@ data class CloudUserProfile(
         fun fromMap(map: Map<String, Any?>): CloudUserProfile {
             val unlockedWeaponsRaw = map["unlockedWeaponIds"] as? List<*>
             val unlockedSuperpowersRaw = map["unlockedSuperpowerIds"] as? List<*>
+            val unlockedArmorsRaw = map["unlockedArmorIds"] as? List<*>
+            val unlockedPetsRaw = map["unlockedPetIds"] as? List<*>
 
             return CloudUserProfile(
                 cloudUserId = map["cloudUserId"] as? String ?: UUID.randomUUID().toString(),
@@ -75,12 +91,19 @@ data class CloudUserProfile(
                 level = (map["level"] as? Number)?.toInt() ?: 1,
                 xp = (map["xp"] as? Number)?.toInt() ?: 0,
                 gold = (map["gold"] as? Number)?.toInt() ?: 500,
+                gems = (map["gems"] as? Number)?.toInt() ?: 50,
                 wins = (map["wins"] as? Number)?.toInt() ?: 0,
                 losses = (map["losses"] as? Number)?.toInt() ?: 0,
                 equippedWeaponId = (map["equippedWeaponId"] as? Number)?.toInt() ?: 1,
                 equippedSuperpowerId = (map["equippedSuperpowerId"] as? Number)?.toInt() ?: 1,
+                equippedArmorId = (map["equippedArmorId"] as? Number)?.toInt() ?: 1,
+                equippedPetId = (map["equippedPetId"] as? Number)?.toInt() ?: 1,
+                weaponUpgradeLevel = (map["weaponUpgradeLevel"] as? Number)?.toInt() ?: 0,
+                highestRaidDefeated = (map["highestRaidDefeated"] as? Number)?.toInt() ?: 0,
                 unlockedWeaponIds = unlockedWeaponsRaw?.mapNotNull { (it as? Number)?.toInt() } ?: listOf(1),
                 unlockedSuperpowerIds = unlockedSuperpowersRaw?.mapNotNull { (it as? Number)?.toInt() } ?: listOf(1),
+                unlockedArmorIds = unlockedArmorsRaw?.mapNotNull { (it as? Number)?.toInt() } ?: listOf(1),
+                unlockedPetIds = unlockedPetsRaw?.mapNotNull { (it as? Number)?.toInt() } ?: listOf(1),
                 lastCloudSyncTimestamp = (map["lastCloudSyncTimestamp"] as? Number)?.toLong() ?: System.currentTimeMillis()
             )
         }

@@ -197,10 +197,10 @@ fun BattleScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "👹 ${battleState.opponentName}",
+                                text = if (battleState.isRaidBattle) "💀 [زعيم أسطوري] ${battleState.opponentName}" else "👹 ${battleState.opponentName}",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFFF8A80)
+                                color = if (battleState.isRaidBattle) Color(0xFFFFD54F) else Color(0xFFFF8A80)
                             )
                             Text(
                                 text = "${battleState.opponentHp} / ${battleState.opponentMaxHp} HP",
@@ -576,13 +576,21 @@ fun BattleScreen(
                                     text = "💰 +${battleState.goldEarned} ذهب",
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFFFD54F),
-                                    fontSize = 16.sp
+                                    fontSize = 15.sp
                                 )
+                                if (battleState.gemsEarned > 0) {
+                                    Text(
+                                        text = "💎 +${battleState.gemsEarned} جوهرة",
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF80D8FF),
+                                        fontSize = 15.sp
+                                    )
+                                }
                                 Text(
                                     text = "⭐ +${battleState.xpEarned} خبرة",
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF81D4FA),
-                                    fontSize = 16.sp
+                                    fontSize = 15.sp
                                 )
                             }
                         }

@@ -11,8 +11,14 @@ import com.example.data.cloud.OnlineLeaderboardPlayer
 import com.example.data.db.AppDatabase
 import com.example.data.db.BattleRecordEntity
 import com.example.data.db.UserEntity
+import com.example.data.model.Armor
+import com.example.data.model.ArmorsCatalog
+import com.example.data.model.Pet
+import com.example.data.model.PetsCatalog
 import com.example.data.model.Superpower
 import com.example.data.model.SuperpowersCatalog
+import com.example.data.model.TitanBoss
+import com.example.data.model.TitansCatalog
 import com.example.data.model.Weapon
 import com.example.data.model.WeaponsCatalog
 import com.example.data.repository.GameRepository
@@ -36,7 +42,11 @@ enum class Screen {
     SUPERPOWERS,
     BATTLE,
     HISTORY,
-    LEADERBOARD
+    LEADERBOARD,
+    ARMOR,
+    PETS,
+    FORGE,
+    TITAN_RAIDS
 }
 
 enum class BattleTurn {
@@ -65,12 +75,18 @@ data class BattleState(
     val playerEnergy: Int = 40,
     val isPlayerDefending: Boolean = false,
 
+    // نظام الغارات الأسطورية والعتاد والمرافقين
+    val isRaidBattle: Boolean = false,
+    val activeTitanId: Int? = null,
+    val petActionSummary: String = "",
+
     // سجل المعركة وحالة الانتهاء
     val battleLog: List<String> = emptyList(),
     val isBattleOver: Boolean = false,
     val isVictory: Boolean = false,
     val goldEarned: Int = 0,
-    val xpEarned: Int = 0
+    val xpEarned: Int = 0,
+    val gemsEarned: Int = 0
 )
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
@@ -282,9 +298,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         audioEngine.playUiClick()
         _currentScreen.value = screen
         when (screen) {
-            Screen.HOME -> narratorEngine.speak("الرئيسية أونلاين. رصيدك: ${currentUser.value?.gold ?: 0} ذهبة. متصل بقاعدة بيانات فايربيز.")
-            Screen.WEAPONS -> narratorEngine.speak("ترسانة الأسلحة الاحترافية. ثلاثون سلاحاً بمؤثرات صوتية حصرية من مكتبة كيني ستوديو العالمية الأصلية للأندرويد.")
-            Screen.SUPERPOWERS -> narratorEngine.speak("خزينة القوى الخارقة الاحترافية. استمع للأصوات وجهز قدرتك الساحقة.")
+            Screen.HOME -> narratorEngine.speak("الرئيسية أونلاين. رصيدك: ${currentUser.value?.gold ?: 0} ذهبة و ${currentUser.value?.gems ?: 0} جوهرة. متصل بقاعدة بيانات فايربيز.")
+            Screen.WEAPONS -> narratorEngine.speak("ترسانة الأسلحة الخارقة. خمسون سلاحاً أسطورياً بمؤثرات صوتية حصرية.")
+            Screen.SUPERPOWERS -> narratorEngine.speak("خزينة القوى الخارقة الفلكية. خمسون قوة ساحقة.")
+            Screen.ARMOR -> narratorEngine.speak("ترسانة الدروع والعتاد الأسطوري. تصفح الدروع لامتصاص الأضرار وزيادة صحتك.")
+            Screen.PETS -> narratorEngine.speak("ملاذ المرافقين والوحوش المروّضة. اختر مرافقك الوفي ليقاتل بجانبك ويشفيك في المعركة.")
+            Screen.FORGE -> narratorEngine.speak("ورشة الحدادة والترقية السحرية. طوّر أسلحتك حتى مستوى زائد عشرة لمضاعفة أضرارك.")
+            Screen.TITAN_RAIDS -> narratorEngine.speak("طور غارات الزعماء الأسطوريين. تحدى جبابرة الكون لمكافآت كبرى من الجواهر والأسلحة النادرة.")
             Screen.HISTORY -> {
                 loadHistory()
                 narratorEngine.speak("سجل المعارك المحفوظ في فايربيز.")
@@ -292,7 +312,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             Screen.LEADERBOARD -> {
                 narratorEngine.speak("قائمة المتصدرين العالمية المزامنة مع فايربيز. استمع لترتيب أبطال اللعبة حول العالم.")
             }
-            Screen.BATTLE -> startNewBattle()
+            Screen.BATTLE -> {
+                if (!_battleState.value.inBattle) {
+                    startNewBattle()
+                }
+            }
             Screen.AUTH -> narratorEngine.speak("شاشة الدخول إلى قاعدة بيانات فايربيز.")
         }
     }
@@ -371,6 +395,134 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // ==========================================
+    // أنظمة التجهيز والعتاد والمرافقين والحدادة (Expansion Systems)
+    // ==========================================
+
+    fun previewArmor(armor: Armor) {
+        audioEngine.playDefenseSound()
+        narratorEngine.speak("درع: ${armor.name}. يمتص ${armor.damageReductionPercent}% من الأضرار ويمنحك ${armor.bonusHp} نقطة حياة إضافية. ${armor.description}")
+    }
+
+    fun equipArmor(armor: Armor) {
+        val user = currentUser.value ?: return
+        val unlockedList = user.unlockedArmorIds.split(",")
+        if (unlockedList.contains(armor.id.toString())) {
+            viewModelScope.launch {
+                repository.equipArmor(armor.id)
+                audioEngine.playDefenseSound()
+                narratorEngine.speak("تم تجهيز الدرع: ${armor.name} بنجاح!")
+            }
+        } else {
+            if (user.gold >= armor.costGold && user.gems >= armor.costGems) {
+                viewModelScope.launch {
+                    val ok = repository.unlockArmor(armor.id, armor.costGold, armor.costGems)
+                    if (ok) {
+                        repository.equipArmor(armor.id)
+                        audioEngine.playDefenseSound()
+                        narratorEngine.speak("تم فتح وتجهيز الدرع الأسطوري ${armor.name}!")
+                    }
+                }
+            } else {
+                narratorEngine.speak("الموارد غير كافية. يتطلب ${armor.costGold} ذهبة و ${armor.costGems} جوهرة.")
+            }
+        }
+    }
+
+    fun previewPet(pet: Pet) {
+        audioEngine.playPetSound()
+        narratorEngine.speak("المرافق: ${pet.name}. يهاجم بقوة ${pet.attackDamage} ويشفيك بمقدار ${pet.healAmountPerTurn} نقطة كل دور. ${pet.description}")
+    }
+
+    fun equipPet(pet: Pet) {
+        val user = currentUser.value ?: return
+        val unlockedList = user.unlockedPetIds.split(",")
+        if (unlockedList.contains(pet.id.toString())) {
+            viewModelScope.launch {
+                repository.equipPet(pet.id)
+                audioEngine.playPetSound()
+                narratorEngine.speak("تم تجهيز المرافق: ${pet.name} ليقاتل بجانبك!")
+            }
+        } else {
+            if (user.gold >= pet.costGold && user.gems >= pet.costGems) {
+                viewModelScope.launch {
+                    val ok = repository.unlockPet(pet.id, pet.costGold, pet.costGems)
+                    if (ok) {
+                        repository.equipPet(pet.id)
+                        audioEngine.playPetSound()
+                        narratorEngine.speak("تم ترويض وتجهيز المرافق الأسطوري ${pet.name}!")
+                    }
+                }
+            } else {
+                narratorEngine.speak("الموارد غير كافية. يتطلب ${pet.costGold} ذهبة و ${pet.costGems} جوهرة.")
+            }
+        }
+    }
+
+    fun upgradeWeaponForge() {
+        val user = currentUser.value ?: return
+        if (user.weaponUpgradeLevel >= 10) {
+            narratorEngine.speak("لقد وصلت للحد الأقصى لتطوير الحدادة الأسطورية (+10)!")
+            return
+        }
+        val costGold = (user.weaponUpgradeLevel + 1) * 600
+        val costGems = (user.weaponUpgradeLevel + 1) * 8
+
+        if (user.gold >= costGold && user.gems >= costGems) {
+            viewModelScope.launch {
+                val ok = repository.upgradeWeaponForge(costGold, costGems)
+                if (ok) {
+                    audioEngine.playForgeHammer()
+                    narratorEngine.speak("نجاح الترقية في ورشة الحدادة! مستوى الترقية الآن +${user.weaponUpgradeLevel + 1}. تم زيادة ضرر أسلحتك بنسبة 10% إضافية!")
+                }
+            }
+        } else {
+            narratorEngine.speak("موارد غير كافية للتطوير في الحدادة. يتطلب $costGold ذهبة و $costGems جوهرة.")
+        }
+    }
+
+    fun startTitanRaid(titan: TitanBoss) {
+        enemyAiJob?.cancel()
+        val user = currentUser.value
+        val playerWeapon = WeaponsCatalog.getWeaponById(user?.equippedWeaponId ?: 1)
+        val playerPower = SuperpowersCatalog.getSuperpowerById(user?.equippedSuperpowerId ?: 1)
+        val equippedArmor = ArmorsCatalog.getArmorById(user?.equippedArmorId ?: 1)
+        val equippedPet = PetsCatalog.getPetById(user?.equippedPetId ?: 1)
+        val maxHp = 300 + equippedArmor.bonusHp
+
+        _battleState.value = BattleState(
+            inBattle = true,
+            currentTurn = BattleTurn.PLAYER_TURN,
+            turnNumber = 1,
+            isActionInProgress = false,
+            opponentName = titan.name,
+            opponentMaxHp = titan.maxHp,
+            opponentHp = titan.maxHp,
+            opponentEnergy = 50,
+            opponentWeaponId = 50,
+            opponentSuperpowerId = 50,
+            playerMaxHp = maxHp,
+            playerHp = maxHp,
+            playerEnergy = 50,
+            isPlayerDefending = false,
+            isRaidBattle = true,
+            activeTitanId = titan.id,
+            battleLog = listOf(
+                "⚔️ بدأت غارة الزعيم الأسطوري: [${titan.name}]!",
+                "لقبه: ${titan.title} | رتبة الصعوبة: ${titan.difficultyRank} | درعك: [${equippedArmor.name}] | مرافقك: [${equippedPet.name}]."
+            ),
+            isBattleOver = false
+        )
+
+        audioEngine.playBossRoar()
+        narratorEngine.speak(
+            "غارة الزعيم الأسطوري! لقد دخلت ساحة قتال ${titan.name} - ${titan.title}! " +
+                    "نقاط صحة الزعيم: ${titan.maxHp}. احذر من هجومه الخاص: ${titan.specialAttackName}. " +
+                    "إنه دورك الآن، ابدأ بالهجوم أو الصد!"
+        )
+        navigateTo(Screen.BATTLE)
+    }
+
+    // ==========================================
     // حلبة المعارك الأونلاين (Online Sound Arena)
     // ==========================================
 
@@ -389,6 +541,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val user = currentUser.value
         val playerWeapon = WeaponsCatalog.getWeaponById(user?.equippedWeaponId ?: 1)
         val playerPower = SuperpowersCatalog.getSuperpowerById(user?.equippedSuperpowerId ?: 1)
+        val equippedArmor = ArmorsCatalog.getArmorById(user?.equippedArmorId ?: 1)
+        val equippedPet = PetsCatalog.getPetById(user?.equippedPetId ?: 1)
+        val maxHp = 300 + equippedArmor.bonusHp
 
         val monsterWeaponId = Random.nextInt(1, WeaponsCatalog.allWeapons.size + 1)
         val monsterPowerId = Random.nextInt(1, SuperpowersCatalog.allSuperpowers.size + 1)
@@ -406,13 +561,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             opponentEnergy = 35,
             opponentWeaponId = monsterWeaponId,
             opponentSuperpowerId = monsterPowerId,
-            playerMaxHp = 300,
-            playerHp = 300,
+            playerMaxHp = maxHp,
+            playerHp = maxHp,
             playerEnergy = 40,
             isPlayerDefending = false,
+            isRaidBattle = false,
             battleLog = listOf(
                 "بدأت معركة الأدوار! سلاحك: [${playerWeapon.name}]، وقوتك: [${playerPower.name}].",
-                "سلاح الوحش: [${monsterWeapon.name}]، وقوة الوحش: [${monsterPower.name}]."
+                "درعك: [${equippedArmor.name}]، ومرافقك: [${equippedPet.name}]."
             ),
             isBattleOver = false
         )
@@ -434,19 +590,33 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         val user = currentUser.value
         val weapon = WeaponsCatalog.getWeaponById(user?.equippedWeaponId ?: 1)
+        val pet = PetsCatalog.getPetById(user?.equippedPetId ?: 1)
+        val forgeLevel = user?.weaponUpgradeLevel ?: 0
+        val forgeMultiplier = 1.0f + (forgeLevel * 0.10f)
 
         audioEngine.playWeaponSound(weapon.soundProfile)
 
         val variation = Random.nextInt(-8, 14)
-        val finalDamage = ((weapon.damage + variation) * weapon.speed).toInt().coerceAtLeast(25)
+        val baseDamage = ((weapon.damage + variation) * weapon.speed * forgeMultiplier).toInt().coerceAtLeast(25)
+        val petDamage = pet.attackDamage
+        val finalDamage = baseDamage + petDamage
+        val healedPlayerHp = (state.playerHp + pet.healAmountPerTurn).coerceAtMost(state.playerMaxHp)
+
+        if (petDamage > 0 || pet.healAmountPerTurn > 0) {
+            audioEngine.playPetSound()
+        }
+
         val newOpponentHp = (state.opponentHp - finalDamage).coerceAtLeast(0)
         val newEnergy = (state.playerEnergy + 20).coerceAtMost(100)
         val isVictory = newOpponentHp <= 0
 
-        val log = "الجولة ${state.turnNumber} [دورك]: ضربت الوحش بسلاحك [${weapon.name}] وألحقت به $finalDamage ضرراً!"
-        narratorEngine.speak("في دورك: ضربة بسلاحك ${weapon.name}! $finalDamage ضرر. صحة الوحش $newOpponentHp.")
+        val forgeText = if (forgeLevel > 0) " (+${forgeLevel * 10}% حدادة)" else ""
+        val petText = if (petDamage > 0) " ودعمك مرافقك [${pet.name}] بـ $petDamage ضرر إضافي!" else ""
+        val log = "الجولة ${state.turnNumber} [دورك]: ضربت بسلاحك [${weapon.name}]$forgeText محدثاً $baseDamage ضرراً$petText"
+        narratorEngine.speak("في دورك: ضربة بسلاحك ${weapon.name}! $finalDamage ضرر كلي. صحة الخصم $newOpponentHp.")
 
         _battleState.value = state.copy(
+            playerHp = healedPlayerHp,
             opponentHp = newOpponentHp,
             playerEnergy = newEnergy,
             battleLog = listOf(log) + state.battleLog.take(6),
@@ -467,6 +637,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         val user = currentUser.value
         val power = SuperpowersCatalog.getSuperpowerById(user?.equippedSuperpowerId ?: 1)
+        val pet = PetsCatalog.getPetById(user?.equippedPetId ?: 1)
 
         if (state.playerEnergy < power.energyCost) {
             narratorEngine.speak("طاقة غير كافية! تتطلب القوة ${power.energyCost}%، وطاقتك الحالية ${state.playerEnergy}%. اضرب بالسلاح في دورك لشحن الطاقة.")
@@ -478,15 +649,17 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         audioEngine.playSuperpowerSound(power.soundProfile)
 
         val variation = Random.nextInt(0, 25)
-        val finalDamage = power.damage + variation
+        val finalDamage = power.damage + variation + pet.attackDamage
+        val healedPlayerHp = (state.playerHp + pet.healAmountPerTurn).coerceAtMost(state.playerMaxHp)
         val newOpponentHp = (state.opponentHp - finalDamage).coerceAtLeast(0)
         val newEnergy = (state.playerEnergy - power.energyCost).coerceAtLeast(0)
         val isVictory = newOpponentHp <= 0
 
         val log = "الجولة ${state.turnNumber} [دورك]: أطلقت قوتك الخارقة [${power.name}]! دمار بقوة $finalDamage!"
-        narratorEngine.speak("في دورك: تفجير قوتك الخارقة ${power.name}! $finalDamage ضرر ساحق. صحة الوحش $newOpponentHp.")
+        narratorEngine.speak("في دورك: تفجير قوتك الخارقة ${power.name}! $finalDamage ضرر ساحق. صحة الخصم $newOpponentHp.")
 
         _battleState.value = state.copy(
+            playerHp = healedPlayerHp,
             opponentHp = newOpponentHp,
             playerEnergy = newEnergy,
             battleLog = listOf(log) + state.battleLog.take(6),
@@ -534,7 +707,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             if (_battleState.value.isBattleOver) return@launch
 
             audioEngine.playEnemyTurnStart()
-            narratorEngine.speak("انتهى دورك! الآن دور الوحش ${_battleState.value.opponentName}.")
+            narratorEngine.speak("انتهى دورك! الآن دور ${_battleState.value.opponentName}.")
 
             delay(1200)
             if (_battleState.value.isBattleOver) return@launch
@@ -547,6 +720,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val state = _battleState.value
         if (state.isBattleOver || !state.inBattle) return
 
+        val user = currentUser.value
+        val armor = ArmorsCatalog.getArmorById(user?.equippedArmorId ?: 1)
+        val armorMitigation = armor.damageReductionPercent / 100f
+
         val monsterWeapon = WeaponsCatalog.getWeaponById(state.opponentWeaponId)
         val monsterPower = SuperpowersCatalog.getSuperpowerById(state.opponentSuperpowerId)
 
@@ -555,7 +732,18 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val rawDamage: Int
         val actionDescription: String
 
-        if (useSuperpower) {
+        if (state.isRaidBattle && state.activeTitanId != null) {
+            val titan = TitansCatalog.getTitanById(state.activeTitanId)
+            if (state.opponentEnergy >= 50 && Random.nextFloat() > 0.4f) {
+                audioEngine.playBossRoar()
+                rawDamage = titan.specialAttackDamage + Random.nextInt(-10, 20)
+                actionDescription = "شن هجومه الأسطوري الخاص [${titan.specialAttackName}]"
+            } else {
+                audioEngine.playMonsterAttack()
+                rawDamage = titan.baseDamage + Random.nextInt(-8, 15)
+                actionDescription = "هاجم بقوته البدائية الساحقة"
+            }
+        } else if (useSuperpower) {
             audioEngine.playMonsterSuperpower()
             audioEngine.playSuperpowerSound(monsterPower.soundProfile)
             rawDamage = monsterPower.damage + Random.nextInt(-5, 18)
@@ -573,19 +761,19 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             (state.opponentEnergy + 25).coerceAtMost(100)
         }
 
-        val actualDamage: Int
+        var actualDamage: Int
         val logMsg: String
 
         if (state.isPlayerDefending) {
-            actualDamage = (rawDamage * 0.30f).toInt().coerceAtLeast(6)
+            actualDamage = ((rawDamage * 0.30f) * (1.0f - armorMitigation)).toInt().coerceAtLeast(5)
             audioEngine.playParrySound()
-            logMsg = "الجولة ${state.turnNumber} [دور الوحش]: $actionDescription لكنك صددت الضربة بدرعك وتلقيت $actualDamage ضرر فقط!"
-            narratorEngine.speak("في دور الوحش: $actionDescription! صد ممتاز بدرعك! تلقيت فقط $actualDamage نقطة.")
+            logMsg = "الجولة ${state.turnNumber} [دور الخصم]: $actionDescription لكن درعك [${armor.name}] وتصديك قلصا الضرر إلى $actualDamage فقط!"
+            narratorEngine.speak("صد ممتاز بدرعك ${armor.name}! تلقيت فقط $actualDamage نقطة ضرر.")
         } else {
-            actualDamage = rawDamage
+            actualDamage = (rawDamage * (1.0f - armorMitigation)).toInt().coerceAtLeast(10)
             audioEngine.playHitSound()
-            logMsg = "الجولة ${state.turnNumber} [دور الوحش]: $actionDescription وأصابك مباشرة محدثاً $actualDamage ضرراً!"
-            narratorEngine.speak("في دور الوحش: $actionDescription! أصابك الهجوم وخسرت $actualDamage نقطة حياة.")
+            logMsg = "الجولة ${state.turnNumber} [دور الخصم]: $actionDescription وامتص درعك ${armor.damageReductionPercent}% وتلقيت $actualDamage ضرراً!"
+            narratorEngine.speak("أصابك الهجوم وتلقيت $actualDamage نقطة بعد امتصاص درعك.")
         }
 
         val newPlayerHp = (state.playerHp - actualDamage).coerceAtLeast(0)
@@ -616,7 +804,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 )
 
                 audioEngine.playPlayerTurnStart()
-                narratorEngine.speak("بدأ دورك للجولة $nextTurnNum! صحتك $newPlayerHp وصحة الوحش ${state.opponentHp}. اختر حركتك.")
+                narratorEngine.speak("بدأ دورك للجولة $nextTurnNum! صحتك $newPlayerHp وصحة الخصم ${state.opponentHp}. اختر حركتك.")
             }
         }
     }
@@ -626,17 +814,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val user = currentUser.value
         val playerWeapon = WeaponsCatalog.getWeaponById(user?.equippedWeaponId ?: 1)
         val playerPower = SuperpowersCatalog.getSuperpowerById(user?.equippedSuperpowerId ?: 1)
-        val monsterWeapon = WeaponsCatalog.getWeaponById(state.opponentWeaponId)
-        val monsterPower = SuperpowersCatalog.getSuperpowerById(state.opponentSuperpowerId)
+        val equippedArmor = ArmorsCatalog.getArmorById(user?.equippedArmorId ?: 1)
+        val equippedPet = PetsCatalog.getPetById(user?.equippedPetId ?: 1)
 
-        val turnStr = if (state.currentTurn == BattleTurn.PLAYER_TURN) "دورك الحالي" else "دور الوحش"
+        val turnStr = if (state.currentTurn == BattleTurn.PLAYER_TURN) "دورك الحالي" else "دور الخصم"
 
         narratorEngine.speak(
             "حالة المعركة بنظام الأدوار: الجولة رقم ${state.turnNumber}. $turnStr. " +
                     "صحتك ${state.playerHp} من ${state.playerMaxHp}، وطاقتك ${state.playerEnergy}%. " +
-                    "سلاحك: ${playerWeapon.name}، وقوتك: ${playerPower.name}. " +
-                    "صحة الوحش ${state.opponentHp} من ${state.opponentMaxHp}، وطاقته ${state.opponentEnergy}%. " +
-                    "سلاح الوحش: ${monsterWeapon.name}، وقوته: ${monsterPower.name}."
+                    "سلاحك: ${playerWeapon.name}، وقوتك: ${playerPower.name}، ودرعك: ${equippedArmor.name}، ومرافقك: ${equippedPet.name}. " +
+                    "صحة الخصم ${state.opponentHp} من ${state.opponentMaxHp}."
         )
     }
 
@@ -647,13 +834,32 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val user = currentUser.value
         val weapon = WeaponsCatalog.getWeaponById(user?.equippedWeaponId ?: 1)
         val power = SuperpowersCatalog.getSuperpowerById(user?.equippedSuperpowerId ?: 1)
+        val isRaid = _battleState.value.isRaidBattle
+        val titanId = _battleState.value.activeTitanId
 
-        val goldWon = if (isVictory) 140 else 50
-        val xpWon = if (isVictory) 160 else 60
+        var goldWon = if (isVictory) 140 else 50
+        var xpWon = if (isVictory) 160 else 60
+        var gemsWon = if (isVictory) 5 else 0
+
+        if (isRaid && titanId != null) {
+            val titan = TitansCatalog.getTitanById(titanId)
+            if (isVictory) {
+                goldWon = titan.rewardGold
+                gemsWon = titan.rewardGems
+                xpWon = 500
+                viewModelScope.launch {
+                    repository.recordRaidVictory(titan.id, titan.rewardGold, titan.rewardGems, titan.rewardWeaponId)
+                }
+            } else {
+                goldWon = 100
+                gemsWon = 0
+            }
+        }
 
         if (isVictory) {
             audioEngine.playVictorySound()
-            narratorEngine.speak("نصر مؤزر! لقد سحقت خصمك ${battleState.value.opponentName}! تمت مزامنة نصرك مع فايربيز بنجاح.")
+            val raidText = if (isRaid) "لقد أسقطت الزعيم الأسطوري وحصلت على $gemsWon جوهرة و $goldWon ذهبة!" else ""
+            narratorEngine.speak("نصر مؤزر! لقد سحقت خصمك ${_battleState.value.opponentName}! $raidText تمت مزامنة نصرك مع فايربيز.")
         } else {
             audioEngine.playDefeatSound()
             narratorEngine.speak("سقطت في المعركة. حظاً أوفر في المرة القادمة. تم تسجيل النتيجة في فايربيز.")
@@ -661,18 +867,21 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         _battleState.value = _battleState.value.copy(
             goldEarned = goldWon,
-            xpEarned = xpWon
+            xpEarned = xpWon,
+            gemsEarned = gemsWon
         )
 
-        viewModelScope.launch {
-            repository.recordBattleResult(
-                isVictory = isVictory,
-                opponentName = _battleState.value.opponentName,
-                weaponName = weapon.name,
-                superpowerName = power.name,
-                damageDealt = _battleState.value.opponentMaxHp - _battleState.value.opponentHp,
-                damageTaken = _battleState.value.playerMaxHp - _battleState.value.playerHp
-            )
+        if (!isRaid) {
+            viewModelScope.launch {
+                repository.recordBattleResult(
+                    isVictory = isVictory,
+                    opponentName = _battleState.value.opponentName,
+                    weaponName = weapon.name,
+                    superpowerName = power.name,
+                    damageDealt = _battleState.value.opponentMaxHp - _battleState.value.opponentHp,
+                    damageTaken = _battleState.value.playerMaxHp - _battleState.value.playerHp
+                )
+            }
         }
     }
 

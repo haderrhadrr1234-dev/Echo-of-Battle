@@ -305,6 +305,95 @@ class GameRepository(
         )
     }
 
+    suspend fun equipArmor(armorId: Int) = withContext(Dispatchers.IO) {
+        val user = userDao.getCurrentSessionUserSync() ?: return@withContext
+        val updated = user.copy(equippedArmorId = armorId)
+        userDao.updateUser(updated)
+        syncUserToCloud(updated)
+    }
+
+    suspend fun equipPet(petId: Int) = withContext(Dispatchers.IO) {
+        val user = userDao.getCurrentSessionUserSync() ?: return@withContext
+        val updated = user.copy(equippedPetId = petId)
+        userDao.updateUser(updated)
+        syncUserToCloud(updated)
+    }
+
+    suspend fun unlockArmor(armorId: Int, costGold: Int, costGems: Int): Boolean = withContext(Dispatchers.IO) {
+        val user = userDao.getCurrentSessionUserSync() ?: return@withContext false
+        if (user.gold < costGold || user.gems < costGems) return@withContext false
+
+        val currentUnlocked = user.unlockedArmorIds.split(",").filter { it.isNotBlank() }.toMutableSet()
+        currentUnlocked.add(armorId.toString())
+
+        val updated = user.copy(
+            gold = user.gold - costGold,
+            gems = user.gems - costGems,
+            unlockedArmorIds = currentUnlocked.joinToString(",")
+        )
+        userDao.updateUser(updated)
+        syncUserToCloud(updated)
+        true
+    }
+
+    suspend fun unlockPet(petId: Int, costGold: Int, costGems: Int): Boolean = withContext(Dispatchers.IO) {
+        val user = userDao.getCurrentSessionUserSync() ?: return@withContext false
+        if (user.gold < costGold || user.gems < costGems) return@withContext false
+
+        val currentUnlocked = user.unlockedPetIds.split(",").filter { it.isNotBlank() }.toMutableSet()
+        currentUnlocked.add(petId.toString())
+
+        val updated = user.copy(
+            gold = user.gold - costGold,
+            gems = user.gems - costGems,
+            unlockedPetIds = currentUnlocked.joinToString(",")
+        )
+        userDao.updateUser(updated)
+        syncUserToCloud(updated)
+        true
+    }
+
+    suspend fun upgradeWeaponForge(costGold: Int, costGems: Int): Boolean = withContext(Dispatchers.IO) {
+        val user = userDao.getCurrentSessionUserSync() ?: return@withContext false
+        if (user.gold < costGold || user.gems < costGems) return@withContext false
+        if (user.weaponUpgradeLevel >= 10) return@withContext false
+
+        val updated = user.copy(
+            gold = user.gold - costGold,
+            gems = user.gems - costGems,
+            weaponUpgradeLevel = user.weaponUpgradeLevel + 1
+        )
+        userDao.updateUser(updated)
+        syncUserToCloud(updated)
+        true
+    }
+
+    suspend fun recordRaidVictory(
+        titanId: Int,
+        goldReward: Int,
+        gemsReward: Int,
+        rewardWeaponId: Int?
+    ) = withContext(Dispatchers.IO) {
+        val user = userDao.getCurrentSessionUserSync() ?: return@withContext
+
+        val currentWeapons = user.unlockedWeaponIds.split(",").filter { it.isNotBlank() }.toMutableSet()
+        if (rewardWeaponId != null) {
+            currentWeapons.add(rewardWeaponId.toString())
+        }
+
+        val updated = user.copy(
+            gold = user.gold + goldReward,
+            gems = user.gems + gemsReward,
+            highestRaidDefeated = maxOf(user.highestRaidDefeated, titanId),
+            unlockedWeaponIds = currentWeapons.joinToString(","),
+            wins = user.wins + 1,
+            xp = user.xp + 400,
+            level = 1 + ((user.xp + 400) / 300)
+        )
+        userDao.updateUser(updated)
+        syncUserToCloud(updated)
+    }
+
     private suspend fun syncUserToCloud(user: UserEntity) {
         val cloudProfile = CloudUserProfile(
             cloudUserId = user.email,
@@ -315,12 +404,19 @@ class GameRepository(
             level = user.level,
             xp = user.xp,
             gold = user.gold,
+            gems = user.gems,
             wins = user.wins,
             losses = user.losses,
             equippedWeaponId = user.equippedWeaponId,
             equippedSuperpowerId = user.equippedSuperpowerId,
+            equippedArmorId = user.equippedArmorId,
+            equippedPetId = user.equippedPetId,
+            weaponUpgradeLevel = user.weaponUpgradeLevel,
+            highestRaidDefeated = user.highestRaidDefeated,
             unlockedWeaponIds = user.unlockedWeaponIds.split(",").mapNotNull { it.toIntOrNull() },
-            unlockedSuperpowerIds = user.unlockedSuperpowerIds.split(",").mapNotNull { it.toIntOrNull() }
+            unlockedSuperpowerIds = user.unlockedSuperpowerIds.split(",").mapNotNull { it.toIntOrNull() },
+            unlockedArmorIds = user.unlockedArmorIds.split(",").mapNotNull { it.toIntOrNull() },
+            unlockedPetIds = user.unlockedPetIds.split(",").mapNotNull { it.toIntOrNull() }
         )
         firebaseDb.syncUserProfileToCloud(cloudProfile)
     }

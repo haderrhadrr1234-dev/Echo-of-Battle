@@ -41,7 +41,27 @@ enum class SuperpowerSoundProfile {
     ANTIMATTER_ECHO,
     AURORA_BEAM,
     SENSORY_EYE,
-    OMEGA_CATACLYSM
+    OMEGA_CATACLYSM,
+    HYPERGRAVITY_SHOCK,
+    COSMIC_METEOR_STORM,
+    QUAD_THUNDER_FLOOD,
+    DARK_MATTER_FORTRESS,
+    SHADOW_CLONE_MIRAGE,
+    HYPERNOVA_CATACLYSM,
+    CELESTIAL_RESTORATION,
+    NANITE_REFLECTION_AEGIS,
+    MOLECULAR_DISRUPTION_BEAM,
+    ETERNAL_CHAOS_HEX,
+    ABSOLUTE_ION_OVERDRIVE,
+    COSMIC_DRAGON_ROAR,
+    EVERLASTING_FROST_VORTEX,
+    SOLAR_FLAME_MANTLE,
+    VOID_PULSE_ANNIHILATOR,
+    STARLIGHT_FORCE_BARRIER,
+    POLTERGEIST_STAMPEDE,
+    DUAL_QUANTUM_TELEPORT,
+    THERMONUCLEAR_SINGULARITY,
+    COSMIC_WRATH_OF_TITANS
 }
 
 object SuperpowersCatalog {
@@ -344,6 +364,206 @@ object SuperpowersCatalog {
             energyCost = 100,
             soundProfile = SuperpowerSoundProfile.OMEGA_CATACLYSM,
             costGold = 1500
+        ),
+        Superpower(
+            id = 31,
+            name = "صدمة الجاذبية الفائقة",
+            englishName = "Hypergravity Shock",
+            description = "ضغط هائل يعادل جاذبية نجم نيتروني يسحق الخصم على الأرض مباشرة.",
+            damage = 190,
+            energyCost = 80,
+            soundProfile = SuperpowerSoundProfile.HYPERGRAVITY_SHOCK,
+            costGold = 1650
+        ),
+        Superpower(
+            id = 32,
+            name = "عاصفة النيازك الكونية",
+            englishName = "Cosmic Meteor Storm",
+            description = "استمطار وابل من الشهب والنيازك الفضائية المتفجرة فوق رؤوس الأعداء.",
+            damage = 205,
+            energyCost = 85,
+            soundProfile = SuperpowerSoundProfile.COSMIC_METEOR_STORM,
+            costGold = 1800
+        ),
+        Superpower(
+            id = 33,
+            name = "طوفان الصواعق الرباعية",
+            englishName = "Quad Thunder Flood",
+            description = "أربعة أعمدة برق متزامنة تضرب من السماء في نقطة واحدة مع دوي رعدي ساحق.",
+            damage = 198,
+            energyCost = 82,
+            soundProfile = SuperpowerSoundProfile.QUAD_THUNDER_FLOOD,
+            costGold = 1950
+        ),
+        Superpower(
+            id = 34,
+            name = "حقل المادة المظلمة المنيع",
+            englishName = "Dark Matter Fortress",
+            description = "درع غامض من المادة المظلمة يصد ضربات الخصم ويردها عليه بضرر مضاعف.",
+            damage = 185,
+            energyCost = 75,
+            soundProfile = SuperpowerSoundProfile.DARK_MATTER_FORTRESS,
+            costGold = 2100
+        ),
+        Superpower(
+            id = 35,
+            name = "استنساخ الشبح المحارب",
+            englishName = "Shadow Clone Mirage",
+            description = "توليد نسخ طيفية مقاتلة تشوش انتباه الخصم وتشن هجوماً مباغتاً من كل اتجاه.",
+            damage = 192,
+            energyCost = 78,
+            soundProfile = SuperpowerSoundProfile.SHADOW_CLONE_MIRAGE,
+            costGold = 2300
+        ),
+        Superpower(
+            id = 36,
+            name = "الانفجار النجمي العظيم",
+            englishName = "Hypernova Cataclysm",
+            description = "محاكاة انفجار مستعر أعظم يشع حرارة وضغطاً يعميان أبصار وحواس العدو.",
+            damage = 225,
+            energyCost = 90,
+            soundProfile = SuperpowerSoundProfile.HYPERNOVA_CATACLYSM,
+            costGold = 2500
+        ),
+        Superpower(
+            id = 37,
+            name = "الشفاء الإلهي الفائق",
+            englishName = "Celestial Restoration",
+            description = "هالة نورانية خارقة تعيد شحن صحة المحارب وتزيل كل الآثار السلبية والسموم.",
+            damage = 150,
+            energyCost = 65,
+            soundProfile = SuperpowerSoundProfile.CELESTIAL_RESTORATION,
+            costGold = 2700
+        ),
+        Superpower(
+            id = 38,
+            name = "درع الانعكاس النانوي",
+            englishName = "Nanite Reflection Aegis",
+            description = "ملايين الروبوتات النانوية تشكل طبقة حماية عاكسة تعيد توجيه هجوم الخصم إليه.",
+            damage = 188,
+            energyCost = 76,
+            soundProfile = SuperpowerSoundProfile.NANITE_REFLECTION_AEGIS,
+            costGold = 2900
+        ),
+        Superpower(
+            id = 39,
+            name = "شعاع تفكيك الجزيئات",
+            englishName = "Molecular Disruption Beam",
+            description = "شعاع رنان فائق التردد يفكك الروابط الذرية في دروع الخصم ويضعف دفاعه.",
+            damage = 215,
+            energyCost = 88,
+            soundProfile = SuperpowerSoundProfile.MOLECULAR_DISRUPTION_BEAM,
+            costGold = 3100
+        ),
+        Superpower(
+            id = 40,
+            name = "لعنة الفوضى الأبدية",
+            englishName = "Eternal Chaos Hex",
+            description = "تعويذة سحرية عتيقة تصيب الخصم باضطراب حركي وتقلل قدرته على التصويب.",
+            damage = 210,
+            energyCost = 85,
+            soundProfile = SuperpowerSoundProfile.ETERNAL_CHAOS_HEX,
+            costGold = 3300
+        ),
+        Superpower(
+            id = 41,
+            name = "تسارع الأيونات المطلق",
+            englishName = "Absolute Ion Overdrive",
+            description = "حقن الجهاز العصبي بطاقة أيونية تجعل حركات المقاتل أسرع من الصوت.",
+            damage = 196,
+            energyCost = 80,
+            soundProfile = SuperpowerSoundProfile.ABSOLUTE_ION_OVERDRIVE,
+            costGold = 3600
+        ),
+        Superpower(
+            id = 42,
+            name = "زئير التنين الفضائي",
+            englishName = "Cosmic Dragon Roar",
+            description = "صرخة طاقوية مدوية تشق الهواء وترعب الخصوم وتسبب شللاً مؤقتاً.",
+            damage = 230,
+            energyCost = 92,
+            soundProfile = SuperpowerSoundProfile.COSMIC_DRAGON_ROAR,
+            costGold = 4000
+        ),
+        Superpower(
+            id = 43,
+            name = "إعصار الجليد الأزلي",
+            englishName = "Everlasting Frost Vortex",
+            description = "دوامة جليدية هائجة تعصف بالخصم وتجمد أطرافه ببرودة الفضاء السحيق.",
+            damage = 218,
+            energyCost = 86,
+            soundProfile = SuperpowerSoundProfile.EVERLASTING_FROST_VORTEX,
+            costGold = 4400
+        ),
+        Superpower(
+            id = 44,
+            name = "درع اللهب الحارق",
+            englishName = "Solar Flame Mantle",
+            description = "عباءة من لهب الشمس تلتف حول اللاعب وتحرق أي خصم يقترب منه.",
+            damage = 208,
+            energyCost = 84,
+            soundProfile = SuperpowerSoundProfile.SOLAR_FLAME_MANTLE,
+            costGold = 4800
+        ),
+        Superpower(
+            id = 45,
+            name = "نبض الفراغ الساحق",
+            englishName = "Void Pulse Annihilator",
+            description = "موجة عدم نقية تجتاح ساحة القتال وتمحو آثار الهجمات المضادة.",
+            damage = 235,
+            energyCost = 94,
+            soundProfile = SuperpowerSoundProfile.VOID_PULSE_ANNIHILATOR,
+            costGold = 5200
+        ),
+        Superpower(
+            id = 46,
+            name = "حاجز الطاقة النجمية",
+            englishName = "Starlight Force Barrier",
+            description = "جدار صلب من فوتونات الضوء المكثفة يمنح مناعة لحظية ضد أقوى الضربات.",
+            damage = 190,
+            energyCost = 75,
+            soundProfile = SuperpowerSoundProfile.STARLIGHT_FORCE_BARRIER,
+            costGold = 5600
+        ),
+        Superpower(
+            id = 47,
+            name = "هجوم الأشباح المتعدد",
+            englishName = "Poltergeist Stampede",
+            description = "استدعاء قطيع من الأطياف الغاضبة تهاجم الخصم في انسجام تام.",
+            damage = 222,
+            energyCost = 89,
+            soundProfile = SuperpowerSoundProfile.POLTERGEIST_STAMPEDE,
+            costGold = 6000
+        ),
+        Superpower(
+            id = 48,
+            name = "وميض النقل الآني المزدوج",
+            englishName = "Dual Quantum Teleport",
+            description = "انتقال فوري خلف الخصم لتوجيه ضربة قاصمة قبل أن يدرك اتجاه الهجوم.",
+            damage = 212,
+            energyCost = 82,
+            soundProfile = SuperpowerSoundProfile.DUAL_QUANTUM_TELEPORT,
+            costGold = 6500
+        ),
+        Superpower(
+            id = 49,
+            name = "قنبلة الانصهار الحراري",
+            englishName = "Thermonuclear Singularity",
+            description = "توليد تفاعل اندماجي نووي مصغر في نقطة الهدف يفجر دفاعات الأعداء.",
+            damage = 245,
+            energyCost = 96,
+            soundProfile = SuperpowerSoundProfile.THERMONUCLEAR_SINGULARITY,
+            costGold = 7000
+        ),
+        Superpower(
+            id = 50,
+            name = "غضب الجبابرة والآلهة الكوني",
+            englishName = "Cosmic Wrath of Titans",
+            description = "القدرة الأسطورية المطلقة؛ استحضار قوة جبابرة الكون القدامى في ضربة كونية تزلزل الوجود.",
+            damage = 270,
+            energyCost = 100,
+            soundProfile = SuperpowerSoundProfile.COSMIC_WRATH_OF_TITANS,
+            costGold = 9000
         )
     )
 

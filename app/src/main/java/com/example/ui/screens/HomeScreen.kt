@@ -61,6 +61,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.model.Armor
+import com.example.data.model.ArmorsCatalog
+import com.example.data.model.Pet
+import com.example.data.model.PetsCatalog
 import com.example.data.model.SuperpowersCatalog
 import com.example.data.model.WeaponsCatalog
 import com.example.ui.viewmodel.GameViewModel
@@ -81,6 +85,9 @@ fun HomeScreen(
     val user = currentUser
     val equippedWeapon = WeaponsCatalog.getWeaponById(user?.equippedWeaponId ?: 1)
     val equippedPower = SuperpowersCatalog.getSuperpowerById(user?.equippedSuperpowerId ?: 1)
+    val equippedArmor = ArmorsCatalog.getArmorById(user?.equippedArmorId ?: 1)
+    val equippedPet = PetsCatalog.getPetById(user?.equippedPetId ?: 1)
+    val forgeLevel = user?.weaponUpgradeLevel ?: 0
 
     Box(
         modifier = modifier
@@ -220,21 +227,41 @@ fun HomeScreen(
                             )
                         }
 
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFFFFB300).copy(alpha = 0.2f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB300))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFFFFB300).copy(alpha = 0.2f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB300))
                             ) {
-                                Text(
-                                    text = "💰 ${user?.gold ?: 0}",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFFFD54F)
-                                )
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "💰 ${user?.gold ?: 0}",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFFFD54F)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFF00E5FF).copy(alpha = 0.2f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00E5FF))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "💎 ${user?.gems ?: 0}",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF80D8FF)
+                                    )
+                                }
                             }
                         }
                     }
@@ -257,13 +284,21 @@ fun HomeScreen(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
+                        if (forgeLevel > 0) {
+                            Text(
+                                text = "🔨 حدادة: +$forgeLevel",
+                                color = Color(0xFFFFB74D),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // بطاقة العتاد المجهز حالياً
+            // بطاقة العتاد المجهز حالياً (سلاح، خارق، درع، ومرافق)
             Card(
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF141C2B)),
@@ -271,51 +306,52 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics {
-                        contentDescription = "العتاد المجهز: السلاح: ${equippedWeapon.name}. القوة الخارقة: ${equippedPower.name}."
+                        contentDescription = "العتاد المجهز: السلاح: ${equippedWeapon.name} بمستوى حدادة +$forgeLevel. القوة الخارقة: ${equippedPower.name}. الدرع: ${equippedArmor.name}. المرافق: ${equippedPet.name}."
                     }
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "العتاد المجهز للمعركة:",
+                        text = "العتاد والمرافقون المجهزون للمعركة:",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFB0BEC5)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // 1. السلاح
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
+                            val forgeBadge = if (forgeLevel > 0) " (+${forgeLevel * 10}% حدادة)" else ""
                             Text(
-                                text = "🗡️ ${equippedWeapon.name}",
-                                fontSize = 16.sp,
+                                text = "🗡️ ${equippedWeapon.name}$forgeBadge",
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFFFCC80)
                             )
                             Text(
-                                text = "ضرر السلاح: ${equippedWeapon.damage} | سرعة: ${equippedWeapon.speed}",
+                                text = "ضرر: ${equippedWeapon.damage} | سرعة: ${equippedWeapon.speed}",
                                 fontSize = 12.sp,
                                 color = Color(0xFFB0BEC5)
                             )
                         }
 
                         IconButton(
-                            onClick = {
-                                viewModel.previewWeapon(equippedWeapon)
-                            },
+                            onClick = { viewModel.previewWeapon(equippedWeapon) },
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(40.dp)
                                 .semantics { contentDescription = "استمع لصوت سلاح ${equippedWeapon.name}" }
                         ) {
                             Icon(Icons.Default.VolumeUp, contentDescription = null, tint = Color(0xFFFFB74D))
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
+                    // 2. القوة الخارقة
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -324,26 +360,88 @@ fun HomeScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "⚡ ${equippedPower.name}",
-                                fontSize = 16.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF80DEEA)
                             )
                             Text(
-                                text = "ضرر القوة: ${equippedPower.damage} | طاقة: ${equippedPower.energyCost}%",
+                                text = "ضرر: ${equippedPower.damage} | طاقة: ${equippedPower.energyCost}%",
                                 fontSize = 12.sp,
                                 color = Color(0xFFB0BEC5)
                             )
                         }
 
                         IconButton(
-                            onClick = {
-                                viewModel.previewSuperpower(equippedPower)
-                            },
+                            onClick = { viewModel.previewSuperpower(equippedPower) },
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(40.dp)
                                 .semantics { contentDescription = "استمع لصوت قوة ${equippedPower.name}" }
                         ) {
                             Icon(Icons.Default.VolumeUp, contentDescription = null, tint = Color(0xFF80DEEA))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 3. الدرع
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "🛡️ ${equippedArmor.name}",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFA5D6A7)
+                            )
+                            Text(
+                                text = "امتصاص: ${equippedArmor.damageReductionPercent}% | صحة إضافية: +${equippedArmor.bonusHp}",
+                                fontSize = 12.sp,
+                                color = Color(0xFFB0BEC5)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { viewModel.previewArmor(equippedArmor) },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .semantics { contentDescription = "استمع لصوت درع ${equippedArmor.name}" }
+                        ) {
+                            Icon(Icons.Default.VolumeUp, contentDescription = null, tint = Color(0xFFA5D6A7))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 4. المرافق
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "🐾 ${equippedPet.name}",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFCE93D8)
+                            )
+                            Text(
+                                text = "هجوم: +${equippedPet.attackDamage} | شفاء: +${equippedPet.healAmountPerTurn}",
+                                fontSize = 12.sp,
+                                color = Color(0xFFB0BEC5)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { viewModel.previewPet(equippedPet) },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .semantics { contentDescription = "استمع لصوت مرافق ${equippedPet.name}" }
+                        ) {
+                            Icon(Icons.Default.VolumeUp, contentDescription = null, tint = Color(0xFFCE93D8))
                         }
                     }
                 }
@@ -351,7 +449,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // زر بدء المعركة الكبير (Accessible & Eye-catching)
+            // 1. زر بدء المعركة الصوتية السريعة
             Button(
                 onClick = { viewModel.navigateTo(Screen.BATTLE) },
                 colors = ButtonDefaults.buttonColors(
@@ -361,96 +459,168 @@ fun HomeScreen(
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(72.dp)
+                    .height(68.dp)
                     .testTag("start_battle_button")
-                    .semantics { contentDescription = "بدء معركة قتالية صوتية جديدة ضد خصم عشوائي" }
+                    .semantics { contentDescription = "بدء معركة قتالية صوتية سريعة ضد خصم عشوائي" }
             ) {
-                Icon(Icons.Default.SportsKabaddi, contentDescription = null, modifier = Modifier.size(32.dp))
-                Spacer(modifier = Modifier.width(12.dp))
+                Icon(Icons.Default.SportsKabaddi, contentDescription = null, modifier = Modifier.size(28.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "بدء المعركة الصوتية",
-                    fontSize = 22.sp,
+                    text = "بدء المعركة الصوتية السريعة",
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // قائمة الأسلحة (30 سلاحاً)
+            // 2. زر طور غارات الزعماء الأسطوريين (Titan Boss Raids)
             Button(
-                onClick = { viewModel.navigateTo(Screen.WEAPONS) },
+                onClick = { viewModel.navigateTo(Screen.TITAN_RAIDS) },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF283593),
+                    containerColor = Color(0xFFB71C1C),
                     contentColor = Color.White
                 ),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
-                    .testTag("weapons_menu_button")
-                    .semantics { contentDescription = "ترسانة الأسلحة، تحتوي على ثلاثين سلاحاً غريباً ومذهلاً" }
+                    .height(68.dp)
+                    .testTag("raids_menu_button")
+                    .semantics { contentDescription = "طور غارات الزعماء الأسطوريين، قاتل جبابرة الكون لمكافآت جواهر وأسلحة نادرة" }
             ) {
-                Icon(Icons.Default.Shield, contentDescription = null, modifier = Modifier.size(26.dp))
+                Icon(Icons.Default.FlashOn, contentDescription = null, modifier = Modifier.size(28.dp), tint = Color(0xFFFFD54F))
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "ترسانة الأسلحة (30 سلاح)",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "💀 غارات الزعماء الأسطوريين",
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.ExtraBold
                     )
                     Text(
-                        text = "استمع لأصوات الأسلحة وجهز سلاحك",
+                        text = "قاتل الجبابرة لربح الجواهر 💎 والأسلحة النادرة",
                         fontSize = 12.sp,
-                        color = Color(0xFFB0BEC5)
+                        color = Color(0xFFFFCDD2)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // قائمة القوى الخارقة (30 قوة)
+            // 3. أسلحة (50 سلاحاً) وقوى (50 قوة)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = { viewModel.navigateTo(Screen.WEAPONS) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF283593)),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(60.dp)
+                        .testTag("weapons_menu_button")
+                        .semantics { contentDescription = "ترسانة الأسلحة، تحتوي على خمسين سلاحاً خارقاً" }
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "🗡️ الأسلحة (50)", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "ترسانة الموت", fontSize = 11.sp, color = Color(0xFFB0BEC5))
+                    }
+                }
+
+                Button(
+                    onClick = { viewModel.navigateTo(Screen.SUPERPOWERS) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A148C)),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(60.dp)
+                        .testTag("superpowers_menu_button")
+                        .semantics { contentDescription = "خزينة القوى الخارقة، تحتوي على خمسين قوة خارقة" }
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "⚡ القوى (50)", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "القدرات الفلكية", fontSize = 11.sp, color = Color(0xFFB0BEC5))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 4. الدروع (10 دروع) والمرافقون (8 مرافقين)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = { viewModel.navigateTo(Screen.ARMOR) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00695C)),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(60.dp)
+                        .testTag("armor_menu_button")
+                        .semantics { contentDescription = "ترسانة الدروع والعتاد، امتصاص أضرار وحماية إضافية" }
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "🛡️ الدروع (10)", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "امتصاص الأضرار", fontSize = 11.sp, color = Color(0xFFB2DFDB))
+                    }
+                }
+
+                Button(
+                    onClick = { viewModel.navigateTo(Screen.PETS) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A1B9A)),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(60.dp)
+                        .testTag("pets_menu_button")
+                        .semantics { contentDescription = "ملاذ المرافقين والوحوش المروّضة التي تقاتل معك" }
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "🐾 المرافقون (8)", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "وحوش تقاتل معك", fontSize = 11.sp, color = Color(0xFFE1BEE7))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 5. ورشة الحدادة والترقية السحرية
             Button(
-                onClick = { viewModel.navigateTo(Screen.SUPERPOWERS) },
+                onClick = { viewModel.navigateTo(Screen.FORGE) },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4A148C),
+                    containerColor = Color(0xFF4E342E),
                     contentColor = Color.White
                 ),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
-                    .testTag("superpowers_menu_button")
-                    .semantics { contentDescription = "خزينة القوى الخارقة، تحتوي على ثلاثين قوة خارقة وغريبة" }
+                    .height(58.dp)
+                    .testTag("forge_menu_button")
+                    .semantics { contentDescription = "ورشة الحدادة والترقية، قم بتطوير أسلحتك حتى مستوى زائد عشرة" }
             ) {
-                Icon(Icons.Default.Bolt, contentDescription = null, modifier = Modifier.size(26.dp))
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "خزينة القوى الخارقة (30 قوة)",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "استمع لأصوات القوى الساحقة وجهز قدرتك",
-                        fontSize = 12.sp,
-                        color = Color(0xFFB0BEC5)
-                    )
-                }
+                Text(
+                    text = "🔨 ورشة الحدادة والترقية (+${forgeLevel}/10)",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFFFD54F)
+                )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // قائمة المتصدرين أونلاين (Global Cloud Leaderboard)
+            // 6. قائمة المتصدرين أونلاين (Global Cloud Leaderboard)
             Button(
                 onClick = { viewModel.navigateTo(Screen.LEADERBOARD) },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF00695C),
+                    containerColor = Color(0xFF004D40),
                     contentColor = Color.White
                 ),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp)
+                    .height(58.dp)
                     .testTag("leaderboard_menu_button")
                     .semantics { contentDescription = "قائمة المتصدرين العالمية أونلاين، استمع لترتيب الأبطال حول العالم" }
             ) {
@@ -459,33 +629,33 @@ fun HomeScreen(
                 Column {
                     Text(
                         text = "🏆 قائمة المتصدرين أونلاين",
-                        fontSize = 17.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "ترتيب الأبطال ومنافسي فايربيز مباشرة 🔥",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = Color(0xFFB2DFDB)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // سجل المعارك
+            // 7. سجل المعارك
             OutlinedButton(
                 onClick = { viewModel.navigateTo(Screen.HISTORY) },
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF80CBC4)),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
+                    .height(50.dp)
                     .testTag("history_menu_button")
                     .semantics { contentDescription = "عرض سجل المعارك السابقة والانتصارات" }
             ) {
                 Icon(Icons.Default.History, contentDescription = null)
                 Spacer(modifier = Modifier.width(10.dp))
-                Text(text = "سجل المعارك السابقة", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(text = "سجل المعارك السابقة", fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(14.dp))

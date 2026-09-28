@@ -41,7 +41,27 @@ enum class SoundProfile {
     HYPERSTRING_TETHER,
     IONIC_RAPIER,
     CRYO_BLASTER,
-    OMEGA_SINGULARITY
+    OMEGA_SINGULARITY,
+    METEOR_IGNITER,
+    CELESTIAL_LANCE,
+    WORLDQUAKE_HAMMER,
+    ABSOLUTE_ZERO_CLAYMORE,
+    DARK_SOUL_SCYTHE,
+    PULSAR_BOW,
+    COSMIC_GAUNTLET,
+    COSMIC_VENOM_DAGGER,
+    VOLCANO_AXE,
+    TWIN_PHANTOM_BLADE,
+    ATOMIC_PLASMA_CANNON,
+    LASER_RAY_KATANA,
+    HOLY_RADIANCE_SCEPTER,
+    WORMHOLE_PIERCER,
+    RESONANCE_SONIC_BLADE,
+    HEAVY_ANTIMATTER_MORTAR,
+    DRAGONFANG_GREATSWORD,
+    ALIEN_BEAST_CLAWS,
+    COMPRESSED_GRAVITY_RIFLE,
+    COSMIC_ETERNITY_BLADE
 }
 
 object WeaponsCatalog {
@@ -344,6 +364,206 @@ object WeaponsCatalog {
             speed = 0.65f,
             soundProfile = SoundProfile.OMEGA_SINGULARITY,
             costGold = 1200
+        ),
+        Weapon(
+            id = 31,
+            name = "نصل النيازك المشتعلة",
+            englishName = "Meteor Igniter Blade",
+            description = "سيف مصهور من قلب نيزك ملتهب، يطلق شظايا نارية متفجرة عند كل ضربة.",
+            damage = 145,
+            speed = 1.15f,
+            soundProfile = SoundProfile.METEOR_IGNITER,
+            costGold = 1350
+        ),
+        Weapon(
+            id = 32,
+            name = "رمح الرعد السماوي",
+            englishName = "Celestial Thunder Lance",
+            description = "رمح مشحون بقوة صواعق العواصف الفلكية، يشل حركة الخصوم بصعقات كهربائية.",
+            damage = 150,
+            speed = 1.25f,
+            soundProfile = SoundProfile.CELESTIAL_LANCE,
+            costGold = 1500
+        ),
+        Weapon(
+            id = 33,
+            name = "مطرقة زلزال العوالم",
+            englishName = "Worldquake War Hammer",
+            description = "مطرقة جبارة تحدث هزات أرضية عنيفة تسحق دروع الخصم وتخلخل توازنه.",
+            damage = 168,
+            speed = 0.7f,
+            soundProfile = SoundProfile.WORLDQUAKE_HAMMER,
+            costGold = 1650
+        ),
+        Weapon(
+            id = 34,
+            name = "سيف الجليد المطلق",
+            englishName = "Absolute Zero Claymore",
+            description = "سيف عريض من الكريستال الجليدي الأزلي يجمد دماء الخصم ويقلل سرعة حركته.",
+            damage = 155,
+            speed = 1.0f,
+            soundProfile = SoundProfile.ABSOLUTE_ZERO_CLAYMORE,
+            costGold = 1800
+        ),
+        Weapon(
+            id = 35,
+            name = "منجل الروح المظلمة",
+            englishName = "Dark Soul Scythe",
+            description = "منجل مخيف يحصد أرواح الخصوم ويمتص جزءاً من نقاط حياتهم لترميم صحة حامله.",
+            damage = 160,
+            speed = 1.1f,
+            soundProfile = SoundProfile.DARK_SOUL_SCYTHE,
+            costGold = 1950
+        ),
+        Weapon(
+            id = 36,
+            name = "قوس النجوم النابضة",
+            englishName = "Pulsar Energy Bow",
+            description = "قوس يطلق سهاماً ضوئية خارقة من طاقة النجوم النابضة تصيب الأهداف بدقة متناهية.",
+            damage = 152,
+            speed = 1.4f,
+            soundProfile = SoundProfile.PULSAR_BOW,
+            costGold = 2100
+        ),
+        Weapon(
+            id = 37,
+            name = "قفاز الطاقة الكونية",
+            englishName = "Cosmic Energy Gauntlet",
+            description = "قفاز معدني مزود بأحجار طاقوية يولد لكمات متفجرة تخرق أقوى التحصينات.",
+            damage = 165,
+            speed = 1.2f,
+            soundProfile = SoundProfile.COSMIC_GAUNTLET,
+            costGold = 2300
+        ),
+        Weapon(
+            id = 38,
+            name = "خنجر السم الكوني",
+            englishName = "Cosmic Venom Dagger",
+            description = "خنجر سريع للغاية مغموس في سموم نيبولا الفضائية الحارقة.",
+            damage = 138,
+            speed = 1.85f,
+            soundProfile = SoundProfile.COSMIC_VENOM_DAGGER,
+            costGold = 2450
+        ),
+        Weapon(
+            id = 39,
+            name = "فأس البركان الهائج",
+            englishName = "Raging Volcano Axe",
+            description = "فأس معركة ملحمي يفيض بالحمم البركانية المتوهجة عند كل شطر.",
+            damage = 172,
+            speed = 0.8f,
+            soundProfile = SoundProfile.VOLCANO_AXE,
+            costGold = 2600
+        ),
+        Weapon(
+            id = 40,
+            name = "سيف الشبح المزدوج",
+            englishName = "Twin Phantom Blade",
+            description = "سيفان شبحيان يضربان في وقت واحد من مسارين مختلفين يصعب رصدهما.",
+            damage = 158,
+            speed = 1.5f,
+            soundProfile = SoundProfile.TWIN_PHANTOM_BLADE,
+            costGold = 2800
+        ),
+        Weapon(
+            id = 41,
+            name = "مدفع البلازما الذري",
+            englishName = "Atomic Plasma Cannon",
+            description = "مدفع ثقيل يطلق كرات بلازما فائقة الحرارة تفجر دفاعات الخصم في ثوانٍ.",
+            damage = 180,
+            speed = 0.75f,
+            soundProfile = SoundProfile.ATOMIC_PLASMA_CANNON,
+            costGold = 3000
+        ),
+        Weapon(
+            id = 42,
+            name = "نصل شعاع الليزر",
+            englishName = "Laser Ray Katana",
+            description = "كاتانا مضيئة بنصل ليزري فائق التردد يقطع أصلب المعادن كأنها هواء.",
+            damage = 164,
+            speed = 1.35f,
+            soundProfile = SoundProfile.LASER_RAY_KATANA,
+            costGold = 3200
+        ),
+        Weapon(
+            id = 43,
+            name = "صولجان النور المقدس",
+            englishName = "Holy Radiance Scepter",
+            description = "صولجان مقدس يشع بهالة مباركة تلحق أضراراً هائلة بقوى الظلام والوحوش.",
+            damage = 170,
+            speed = 1.05f,
+            soundProfile = SoundProfile.HOLY_RADIANCE_SCEPTER,
+            costGold = 3500
+        ),
+        Weapon(
+            id = 44,
+            name = "رمح الثقب الدودي",
+            englishName = "Wormhole Piercer",
+            description = "رمح يفتح بوابات دودية صغيرة لنقل نصل الهجوم خلف دروع الخصم مباشرة.",
+            damage = 175,
+            speed = 1.2f,
+            soundProfile = SoundProfile.WORMHOLE_PIERCER,
+            costGold = 3800
+        ),
+        Weapon(
+            id = 45,
+            name = "شفرة الصدى الصوتي الترددي",
+            englishName = "Resonance Sonic Blade",
+            description = "سيف يهتز بملايين الترددات الصوتية في الثانية مسبباً انفجاراً سمعياً مدمراً.",
+            damage = 166,
+            speed = 1.4f,
+            soundProfile = SoundProfile.RESONANCE_SONIC_BLADE,
+            costGold = 4100
+        ),
+        Weapon(
+            id = 46,
+            name = "هاون المادة المضادة الثقيل",
+            englishName = "Heavy Antimatter Mortar",
+            description = "سلاح مدفعي عملاق يطلق مقذوفات مادة مضادة تحدث فجوة تدميرية هائلة.",
+            damage = 192,
+            speed = 0.6f,
+            soundProfile = SoundProfile.HEAVY_ANTIMATTER_MORTAR,
+            costGold = 4500
+        ),
+        Weapon(
+            id = 47,
+            name = "سيف ناب التنين الأسطوري",
+            englishName = "Dragonfang Greatsword",
+            description = "سيف منحوت من ناب تنين بدائي قديم، يزمجر بصوت الرعب مع كل تلويحة.",
+            damage = 188,
+            speed = 0.9f,
+            soundProfile = SoundProfile.DRAGONFANG_GREATSWORD,
+            costGold = 5000
+        ),
+        Weapon(
+            id = 48,
+            name = "مخالب الوحش الفضائي المفترس",
+            englishName = "Alien Beast Claws",
+            description = "مخالب بيولوجية حادة تشن هجمات وحشية متتالية تمزق دروع الأعداء.",
+            damage = 174,
+            speed = 1.6f,
+            soundProfile = SoundProfile.ALIEN_BEAST_CLAWS,
+            costGold = 5500
+        ),
+        Weapon(
+            id = 49,
+            name = "بندقية الجاذبية المضغوطة",
+            englishName = "Compressed Gravity Rifle",
+            description = "بندقية قنص تطبق مجال جاذبية بوزن جبل على نقطة محددة من جسد الخصم.",
+            damage = 195,
+            speed = 0.85f,
+            soundProfile = SoundProfile.COMPRESSED_GRAVITY_RIFLE,
+            costGold = 6000
+        ),
+        Weapon(
+            id = 50,
+            name = "سيف الأبدية الكوني الخارق",
+            englishName = "Cosmic Eternity Blade",
+            description = "سلاح الحكام والجبابرة الأعظم؛ صُنع من طاقة الانفجار العظيم، ويوجه ضربات أسطورية ساحقة.",
+            damage = 220,
+            speed = 1.3f,
+            soundProfile = SoundProfile.COSMIC_ETERNITY_BLADE,
+            costGold = 8000
         )
     )
 

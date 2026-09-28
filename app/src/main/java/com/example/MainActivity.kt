@@ -15,12 +15,16 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.components.UpdateDialog
+import com.example.ui.screens.ArmorSelectionScreen
 import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.BattleScreen
+import com.example.ui.screens.ForgeScreen
 import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.LeaderboardScreen
+import com.example.ui.screens.PetSelectionScreen
 import com.example.ui.screens.SuperpowerSelectionScreen
+import com.example.ui.screens.TitanRaidsScreen
 import com.example.ui.screens.WeaponSelectionScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.GameViewModel
@@ -49,6 +53,10 @@ class MainActivity : ComponentActivity() {
                             Screen.HOME -> HomeScreen(viewModel = viewModel, modifier = screenModifier)
                             Screen.WEAPONS -> WeaponSelectionScreen(viewModel = viewModel, modifier = screenModifier)
                             Screen.SUPERPOWERS -> SuperpowerSelectionScreen(viewModel = viewModel, modifier = screenModifier)
+                            Screen.ARMOR -> ArmorSelectionScreen(viewModel = viewModel, modifier = screenModifier)
+                            Screen.PETS -> PetSelectionScreen(viewModel = viewModel, modifier = screenModifier)
+                            Screen.FORGE -> ForgeScreen(viewModel = viewModel, modifier = screenModifier)
+                            Screen.TITAN_RAIDS -> TitanRaidsScreen(viewModel = viewModel, modifier = screenModifier)
                             Screen.BATTLE -> BattleScreen(viewModel = viewModel, modifier = screenModifier)
                             Screen.HISTORY -> HistoryScreen(viewModel = viewModel, modifier = screenModifier)
                             Screen.LEADERBOARD -> LeaderboardScreen(viewModel = viewModel, modifier = screenModifier)

@@ -18,7 +18,14 @@ data class UserEntity(
     val losses: Int = 0,
     val equippedWeaponId: Int = 1,
     val equippedSuperpowerId: Int = 1,
+    val equippedArmorId: Int = 1,
+    val equippedPetId: Int = 1,
+    val gems: Int = 50,
+    val weaponUpgradeLevel: Int = 0,
+    val highestRaidDefeated: Int = 0,
     val unlockedWeaponIds: String = "1",
     val unlockedSuperpowerIds: String = "1",
+    val unlockedArmorIds: String = "1",
+    val unlockedPetIds: String = "1",
     val isCurrentSession: Boolean = false
 )

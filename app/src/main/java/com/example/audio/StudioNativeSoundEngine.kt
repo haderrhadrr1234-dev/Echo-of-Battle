@@ -219,8 +219,8 @@ class StudioNativeSoundEngine(private val context: Context) {
     }
 
     private fun readRealAudioFile(soundKey: String): ShortArray? {
-        return try {
-            val assetPath = "game_audio_2026/$soundKey.pcm"
+        val assetPath = "game_audio_2026/$soundKey.pcm"
+        try {
             context.assets.open(assetPath).use { input ->
                 val bytes = input.readBytes()
                 val shortCount = bytes.size / 2
@@ -230,12 +230,39 @@ class StudioNativeSoundEngine(private val context: Context) {
                     val high = bytes[i * 2 + 1].toInt()
                     shortArray[i] = ((high shl 8) or low).toShort()
                 }
-                shortArray
+                return shortArray
             }
-        } catch (e: Exception) {
-            Log.w("StudioNativeSoundEngine", "Could not read audio file for: $soundKey", e)
-            null
+        } catch (_: Exception) {
+            return synthesizeDynamicAudio(soundKey)
         }
+    }
+
+    private fun synthesizeDynamicAudio(soundKey: String): ShortArray {
+        val durationMs = when {
+            soundKey.startsWith("wp_") -> 380
+            soundKey.startsWith("sp_") -> 650
+            soundKey.contains("boss_roar") -> 900
+            soundKey.contains("forge") -> 350
+            soundKey.contains("pet") -> 280
+            else -> 400
+        }
+        val sampleCount = (sampleRate * (durationMs / 1000.0)).toInt().coerceAtLeast(1000)
+        val pcm = ShortArray(sampleCount)
+        val hash = soundKey.hashCode()
+        val baseFreq = 160.0 + (Math.abs(hash) % 440)
+
+        for (i in 0 until sampleCount) {
+            val t = i.toDouble() / sampleRate
+            val progress = i.toDouble() / sampleCount
+            val envelope = Math.sin(Math.PI * Math.sqrt(1.0 - progress))
+            val freqSweep = baseFreq * (1.0 - (progress * 0.45))
+            val wave1 = Math.sin(2.0 * Math.PI * freqSweep * t)
+            val wave2 = Math.sin(4.0 * Math.PI * (freqSweep * 1.5) * t) * 0.35
+            val noise = ((Math.sin(i * 1337.0) * 43758.5453) % 1.0) * 0.15 * (1.0 - progress)
+            val sample = ((wave1 + wave2 + noise) * envelope * 24000.0).toInt().coerceIn(-32767, 32767)
+            pcm[i] = sample.toShort()
+        }
+        return pcm
     }
 
     private fun playSound(pcm: ShortArray?, pan: Float = 0f, volume: Float = 1.0f) {
@@ -345,6 +372,24 @@ class StudioNativeSoundEngine(private val context: Context) {
         val pcm = uiSamplesCache["defeat_tone"] ?: readRealAudioFile("defeat_tone")
         playSound(pcm, 0f, 0.9f)
         vibrateHaptic(longArrayOf(0, 280, 100, 480), intArrayOf(0, 160, 0, 120))
+    }
+
+    fun playForgeHammer() {
+        val pcm = readRealAudioFile("forge_hammer_strike")
+        playSound(pcm, 0f, 1.0f)
+        vibrateHaptic(longArrayOf(0, 25, 40, 180), intArrayOf(0, 220, 0, 255))
+    }
+
+    fun playPetSound() {
+        val pcm = readRealAudioFile("pet_companion_action")
+        playSound(pcm, 0.3f, 0.9f)
+        vibrateHaptic(longArrayOf(0, 40, 30, 80), intArrayOf(0, 180, 0, 210))
+    }
+
+    fun playBossRoar() {
+        val pcm = readRealAudioFile("boss_roar_cataclysm")
+        playSound(pcm, 0f, 1.0f)
+        vibrateHaptic(longArrayOf(0, 150, 60, 350, 80, 500), intArrayOf(0, 240, 0, 255, 0, 255))
     }
 
     private fun vibrateHaptic(timings: LongArray, amplitudes: IntArray) {
