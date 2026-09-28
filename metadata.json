@@ -1,0 +1,6 @@
+{
+  "name": "Echo of Battle",
+  "description": "Accessible audio fighting game designed for the blind with 30 strange weapons, 30 superpowers, and spatial sound effects.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
