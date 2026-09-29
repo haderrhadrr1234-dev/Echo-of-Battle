@@ -74,49 +74,12 @@ class AppUpdateManager(private val context: Context) {
      * فحص التحديثات بطريقة مباشرة وذكية بدون أي إدخالات من المستخدم
      */
     suspend fun checkForUpdates(): Result<UpdateInfo> = withContext(Dispatchers.IO) {
-        val cleanCurrentVersion = currentVersionName.removePrefix("v").removePrefix("V")
+        val cleanCurrentVersion = currentVersionName.removePrefix("v").removePrefix("V").trim()
 
-        // 1. المحاولة الأولى: فحص ملف التحديث السحابي المباشر version.json (خالٍ من أي تعقيد أو قيود Rate Limit)
-        for (repoSlug in REPO_CANDIDATES) {
-            try {
-                val rawUrl = "https://raw.githubusercontent.com/$repoSlug/main/version.json"
-                val rawConn = (URL(rawUrl).openConnection() as HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    setRequestProperty("User-Agent", "EchoOfBattle-Android-AutoUpdater")
-                    connectTimeout = 6000
-                    readTimeout = 6000
-                }
+        var anySuccess = false
+        var lastError: Exception? = null
 
-                if (rawConn.responseCode == HttpURLConnection.HTTP_OK) {
-                    val jsonText = rawConn.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(jsonText)
-                    val remoteVer = json.optString("version", "").trim()
-                    val downloadUrl = json.optString("download_url", "").trim()
-                    val title = json.optString("title", "تحديث جديد للعبة")
-                    val notes = json.optString("notes", "تحسينات جديدة وإصلاحات لتجربة لعب مثالية.")
-
-                    if (remoteVer.isNotBlank() && downloadUrl.isNotBlank()) {
-                        val cleanRemote = remoteVer.removePrefix("v").removePrefix("V")
-                        val isNewer = isNewerVersion(cleanRemote, cleanCurrentVersion)
-                        Log.i(TAG, "Direct cloud manifest found: version=$remoteVer, isNewer=$isNewer")
-
-                        return@withContext Result.success(
-                            UpdateInfo(
-                                latestVersionName = remoteVer,
-                                releaseTitle = title,
-                                releaseNotes = notes,
-                                apkDownloadUrl = downloadUrl,
-                                isUpdateAvailable = isNewer
-                            )
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                Log.d(TAG, "Raw check skipped for $repoSlug: ${e.message}")
-            }
-        }
-
-        // 2. المحاولة الثانية: فحص قسم الـ Releases العام في GitHub
+        // 1. المحاولة الأولى: فحص قسم الـ Releases في GitHub (الأكثر دقة وحداثة)
         for (repoSlug in REPO_CANDIDATES) {
             try {
                 val apiUrl = "https://api.github.com/repos/$repoSlug/releases"
@@ -124,8 +87,8 @@ class AppUpdateManager(private val context: Context) {
                     requestMethod = "GET"
                     setRequestProperty("Accept", "application/vnd.github.v3+json")
                     setRequestProperty("User-Agent", "EchoOfBattle-Android-AutoUpdater")
-                    connectTimeout = 6000
-                    readTimeout = 6000
+                    connectTimeout = 7000
+                    readTimeout = 7000
                 }
 
                 if (conn.responseCode == HttpURLConnection.HTTP_OK) {
@@ -137,7 +100,7 @@ class AppUpdateManager(private val context: Context) {
                         val releaseTitle = latestRelease.optString("name", "تحديث جديد للعبة")
                         val releaseNotes = latestRelease.optString("body", "تحسينات وإضافات جديدة.")
 
-                        val cleanRemote = tagName.removePrefix("v").removePrefix("V")
+                        val cleanRemote = tagName.removePrefix("v").removePrefix("V").trim()
                         var apkUrl = ""
 
                         val assets = latestRelease.optJSONArray("assets")
@@ -159,48 +122,109 @@ class AppUpdateManager(private val context: Context) {
                             apkUrl = bestUrl
                         }
 
-                        if (apkUrl.isNotBlank()) {
-                            val isNewer = isNewerVersion(cleanRemote, cleanCurrentVersion)
-                            Log.i(TAG, "GitHub release found on $repoSlug: tag=$tagName, isNewer=$isNewer")
-                            return@withContext Result.success(
-                                UpdateInfo(
-                                    latestVersionName = tagName,
-                                    releaseTitle = releaseTitle,
-                                    releaseNotes = releaseNotes,
-                                    apkDownloadUrl = apkUrl,
-                                    isUpdateAvailable = isNewer
-                                )
-                            )
+                        if (apkUrl.isBlank()) {
+                            apkUrl = "https://github.com/$repoSlug/releases/download/$tagName/EchoOfBattle.apk"
                         }
+
+                        val isNewer = isNewerVersion(cleanRemote, cleanCurrentVersion)
+                        Log.i(TAG, "GitHub release found on $repoSlug: tag=$tagName, cleanRemote=$cleanRemote, current=$cleanCurrentVersion, isNewer=$isNewer")
+                        return@withContext Result.success(
+                            UpdateInfo(
+                                latestVersionName = tagName,
+                                releaseTitle = releaseTitle,
+                                releaseNotes = releaseNotes,
+                                apkDownloadUrl = apkUrl,
+                                isUpdateAvailable = isNewer
+                            )
+                        )
                     }
+                } else {
+                    lastError = Exception("HTTP ${conn.responseCode} from GitHub API")
                 }
             } catch (e: Exception) {
+                lastError = e
                 Log.d(TAG, "GitHub release check failed for $repoSlug: ${e.message}")
             }
         }
 
-        // إذا لم يكن هناك تحديث منشور، أو تعذر الاتصال، نرجع نتيجة واضحة ومطمئنة بدون أخطاء معقدة
-        Result.success(
-            UpdateInfo(
-                latestVersionName = currentVersionName,
-                releaseTitle = "أنت على أحدث إصدار",
-                releaseNotes = "لعبتك محدثة حالياً إلى آخر إصدار متوفر.",
-                apkDownloadUrl = "",
-                isUpdateAvailable = false
+        // 2. المحاولة الثانية: فحص ملف التحديث السحابي المباشر version.json مع منع التخزين المؤقت
+        for (repoSlug in REPO_CANDIDATES) {
+            try {
+                val rawUrl = "https://raw.githubusercontent.com/$repoSlug/main/version.json?t=${System.currentTimeMillis()}"
+                val rawConn = (URL(rawUrl).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    setRequestProperty("User-Agent", "EchoOfBattle-Android-AutoUpdater")
+                    connectTimeout = 6000
+                    readTimeout = 6000
+                }
+
+                if (rawConn.responseCode == HttpURLConnection.HTTP_OK) {
+                    val jsonText = rawConn.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(jsonText)
+                    val remoteVer = json.optString("version", "").trim()
+                    val downloadUrl = json.optString("download_url", "").trim()
+                    val title = json.optString("title", "تحديث جديد للعبة")
+                    val notes = json.optString("notes", "تحسينات جديدة وإصلاحات لتجربة لعب مثالية.")
+
+                    if (remoteVer.isNotBlank() && downloadUrl.isNotBlank()) {
+                        val cleanRemote = remoteVer.removePrefix("v").removePrefix("V").trim()
+                        val isNewer = isNewerVersion(cleanRemote, cleanCurrentVersion)
+                        Log.i(TAG, "Direct cloud manifest found: version=$remoteVer, isNewer=$isNewer")
+
+                        return@withContext Result.success(
+                            UpdateInfo(
+                                latestVersionName = remoteVer,
+                                releaseTitle = title,
+                                releaseNotes = notes,
+                                apkDownloadUrl = downloadUrl,
+                                isUpdateAvailable = isNewer
+                            )
+                        )
+                    }
+                } else {
+                    lastError = Exception("HTTP ${rawConn.responseCode} from version.json")
+                }
+            } catch (e: Exception) {
+                lastError = e
+                Log.d(TAG, "Raw check skipped for $repoSlug: ${e.message}")
+            }
+        }
+
+        // 3. في حال فشل الاتصال بالشبكة تماماً:
+        if (lastError != null) {
+            Result.failure(lastError)
+        } else {
+            // الرابط الافتراضي المباشر للإصدار المنشور الأخير v2.0.0
+            val fallbackUrl = "https://github.com/haderrhadrr1234-dev/Echo-of-Battle/releases/download/v2.0.0/EchoOfBattle.apk"
+            Result.success(
+                UpdateInfo(
+                    latestVersionName = "v2.0.0",
+                    releaseTitle = "الإصدار العملاق 2.0 - صدى المعركة (Echo of Battle)",
+                    releaseNotes = "طور غارات الزعماء الأسطوريين، 50 سلاحاً، 50 قوة خارقة، 10 دروع أسطورية، 8 مرافقين مقاتلين، وورشة الحدادة السحرية!",
+                    apkDownloadUrl = fallbackUrl,
+                    isUpdateAvailable = isNewerVersion("2.0.0", cleanCurrentVersion)
+                )
             )
-        )
+        }
     }
 
     /**
-     * مقارنة إصدارين رقميين (Semantic Version Comparison)
+     * مقارنة إصدارين رقميين بدقة (Semantic Version Comparison)
      */
     fun isNewerVersion(remote: String, current: String): Boolean {
         if (remote.isBlank() || current.isBlank()) return false
-        val rParts = remote.split(".").mapNotNull { it.trim().toIntOrNull() }
-        val cParts = current.split(".").mapNotNull { it.trim().toIntOrNull() }
+        val rClean = remote.removePrefix("v").removePrefix("V").trim()
+        val cClean = current.removePrefix("v").removePrefix("V").trim()
+
+        val rParts = rClean.split(".").mapNotNull { part ->
+            part.filter { it.isDigit() }.toIntOrNull()
+        }
+        val cParts = cClean.split(".").mapNotNull { part ->
+            part.filter { it.isDigit() }.toIntOrNull()
+        }
 
         if (rParts.isEmpty() || cParts.isEmpty()) {
-            return remote.compareTo(current, ignoreCase = true) > 0
+            return rClean.compareTo(cClean, ignoreCase = true) > 0
         }
 
         val maxLen = maxOf(rParts.size, cParts.size)

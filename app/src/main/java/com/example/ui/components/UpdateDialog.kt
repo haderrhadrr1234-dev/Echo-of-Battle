@@ -82,14 +82,14 @@ fun UpdateDialog(
         },
         title = {
             Text(
-                text = "يتوفر تحديث جديد!",
+                text = if (updateInfo.isUpdateAvailable) "يتوفر تحديث جديد!" else "أحدث إصدار متوفر (${updateInfo.latestVersionName})",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics {
-                        contentDescription = "عنوان: يتوفر تحديث جديد للإصدار ${updateInfo.latestVersionName}"
+                        contentDescription = "عنوان: إصدار ${updateInfo.latestVersionName}"
                     }
                     .testTag("update_dialog_title")
             )
@@ -102,7 +102,11 @@ fun UpdateDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "هل تريد تحديث التطبيق الآن؟",
+                    text = if (updateInfo.isUpdateAvailable) {
+                        "يتوفر الإصدار الأحدث ${updateInfo.latestVersionName} في المستودع. هل تريد التحديث والتثبيت الآن؟"
+                    } else {
+                        "أحدث ملف APK للعبة متاح وجاهز للتثبيت المباشر (${updateInfo.latestVersionName}). هل تريد تنزيله وتثبيته الآن؟"
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
@@ -110,7 +114,7 @@ fun UpdateDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .semantics {
-                            contentDescription = "رسالة: هل تريد تحديث التطبيق الآن؟ الإصدار الجديد ${updateInfo.latestVersionName} متاح."
+                            contentDescription = "رسالة التحديث للإصدار ${updateInfo.latestVersionName}"
                         }
                         .testTag("update_dialog_message")
                 )
@@ -118,7 +122,7 @@ fun UpdateDialog(
                 if (updateInfo.latestVersionName.isNotBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "الإصدار المتوفر: ${updateInfo.latestVersionName}",
+                        text = "الإصدار: ${updateInfo.latestVersionName}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
@@ -214,12 +218,16 @@ fun UpdateDialog(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .semantics {
-                        contentDescription = "تحديث التطبيق وتنزيل ملف APK الجديد"
+                        contentDescription = "تنزيل وتثبيت ملف APK للعبة"
                     }
                     .testTag("update_confirm_button")
             ) {
                 Text(
-                    text = if (downloadState is DownloadState.Error) "إعادة المحاولة" else "تحديث",
+                    text = when {
+                        downloadState is DownloadState.Error -> "إعادة المحاولة"
+                        updateInfo.isUpdateAvailable -> "تحديث وتثبيت الآن"
+                        else -> "تنزيل وتثبيت الآن"
+                    },
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp
                 )

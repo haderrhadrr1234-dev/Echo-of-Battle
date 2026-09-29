@@ -900,9 +900,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 if (info.isUpdateAvailable) {
                     _showUpdateDialog.value = true
                     audioEngine.playAccountSelect()
-                    narratorEngine.speak("يتوفر تحديث جديد للعبة! الإصدار ${info.latestVersionName}. هل تريد التحديث الآن؟")
+                    narratorEngine.speak("يتوفر تحديث جديد للعبة! الإصدار ${info.latestVersionName}. هل تريد التحديث والتثبيت الآن؟")
                 } else if (manual) {
-                    narratorEngine.speak("لعبتك محدثة إلى أحدث إصدار: ${updateManager.currentVersionName}")
+                    _showUpdateDialog.value = true
+                    audioEngine.playAccountSelect()
+                    narratorEngine.speak("الإصدار المتوفر في المستودع هو ${info.latestVersionName}. يمكنك النقر على زر التثبيت لتنزيل أحدث ملف APK للعبة وتثبيته فوراً.")
                 }
             }.onFailure { e ->
                 android.util.Log.w("GameViewModel", "Update check failed", e)
