@@ -156,6 +156,24 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+        // مراقبة حالة تنزيل التحديثات لتقديم إرشادات صوتية مباشرة للمكفوفين
+        viewModelScope.launch {
+            updateManager.downloadState.collect { state ->
+                when (state) {
+                    is DownloadState.Downloaded -> {
+                        narratorEngine.speak("اكتمل تنزيل التحديث بنجاح! يتم الآن فتح أداة تثبيت الحزم على هاتفك.")
+                    }
+                    is DownloadState.PermissionRequired -> {
+                        narratorEngine.speak("يرجى تفعيل خيار السماح بتثبيت التطبيقات من الإعدادات لإتمام التثبيت.")
+                    }
+                    is DownloadState.Error -> {
+                        narratorEngine.speak("حدث خطأ أثناء تنزيل التحديث: ${state.message}")
+                    }
+                    else -> {}
+                }
+            }
+        }
+
         // فحص التحديثات التلقائية عند فتح التطبيق من مستودع GitHub
         checkForAppUpdates(manual = false)
     }
@@ -929,6 +947,23 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         _showUpdateDialog.value = false
         updateManager.resetDownloadState()
         narratorEngine.speak("تم إغلاق نافذة التحديث.")
+    }
+
+    fun checkAndResumePendingInstall() {
+        updateManager.checkAndResumePendingInstall()
+    }
+
+    fun requestInstallPermission() {
+        audioEngine.playUiClick()
+        narratorEngine.speak("يتم فتح شاشة الإعدادات للسماح بتثبيت التحديث...")
+        updateManager.requestInstallPermission()
+    }
+
+    fun retryInstallApk() {
+        val apk = updateManager.lastDownloadedApk ?: return
+        audioEngine.playUiClick()
+        narratorEngine.speak("يتم فتح مثبت الحزم لتثبيت اللعبة...")
+        updateManager.installApk(apk)
     }
 
     override fun onCleared() {

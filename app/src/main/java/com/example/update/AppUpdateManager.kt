@@ -2,8 +2,10 @@ package com.example.update
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import androidx.core.content.FileProvider
@@ -17,6 +19,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -32,6 +35,7 @@ sealed class DownloadState {
     object Idle : DownloadState()
     data class Downloading(val progress: Float, val downloadedBytes: Long, val totalBytes: Long) : DownloadState()
     data class Downloaded(val apkFile: File) : DownloadState()
+    data class PermissionRequired(val apkFile: File) : DownloadState()
     data class Error(val message: String) : DownloadState()
 }
 
@@ -237,6 +241,10 @@ class AppUpdateManager(private val context: Context) {
         return false
     }
 
+    // حفظ آخر ملف تم تنزيله لاستئناف التثبيت فور منح الإذن من الإعدادات
+    var lastDownloadedApk: File? = null
+        private set
+
     /**
      * تنزيل ملف الـ APK وتثبيته مباشرة للمستخدم بنقرة واحدة
      */
@@ -247,38 +255,55 @@ class AppUpdateManager(private val context: Context) {
         }
 
         try {
-            _downloadState.value = DownloadState.Downloading(0f, 0L, 0L)
+            _downloadState.value = DownloadState.Downloading(0.01f, 0L, 0L)
             Log.d(TAG, "Starting APK download from: $apkUrl")
 
-            val url = URL(apkUrl)
-            val connection = (url.openConnection() as HttpURLConnection).apply {
-                instanceFollowRedirects = true
-                setRequestProperty("User-Agent", "EchoOfBattle-Android-AutoUpdater")
-                connectTimeout = 15000
-                readTimeout = 30000
-            }
-
-            var redirectConnection: HttpURLConnection = connection
+            var currentUrl = apkUrl
             var redirectCount = 0
-            while (redirectConnection.responseCode in 300..399 && redirectCount < 5) {
-                val newUrl = redirectConnection.getHeaderField("Location")
-                redirectConnection = (URL(newUrl).openConnection() as HttpURLConnection).apply {
-                    instanceFollowRedirects = true
+            var finalConnection: HttpURLConnection? = null
+
+            // معالجة التوجيهات المتعددة (GitHub Releases -> AWS S3 / Release-Assets CDN)
+            while (redirectCount < 7) {
+                val conn = (URL(currentUrl).openConnection() as HttpURLConnection).apply {
+                    instanceFollowRedirects = false
                     setRequestProperty("User-Agent", "EchoOfBattle-Android-AutoUpdater")
                     connectTimeout = 15000
                     readTimeout = 30000
                 }
-                redirectCount++
+                val code = conn.responseCode
+                if (code in 300..399) {
+                    val location = conn.getHeaderField("Location")
+                    conn.disconnect()
+                    if (location.isNullOrBlank()) {
+                        throw IOException("Redirect received without Location header")
+                    }
+                    currentUrl = if (location.startsWith("http")) location else URL(URL(currentUrl), location).toString()
+                    redirectCount++
+                } else if (code == HttpURLConnection.HTTP_OK) {
+                    finalConnection = conn
+                    break
+                } else {
+                    conn.disconnect()
+                    throw IOException("HTTP $code from $currentUrl")
+                }
             }
 
-            val totalBytes = redirectConnection.contentLength.toLong()
-            val updateDir = File(context.cacheDir, "updates").apply { if (!exists()) mkdirs() }
-            val apkFile = File(updateDir, "EchoOfBattle-Update.apk")
+            val connection = finalConnection ?: throw IOException("تعذر إكمال التوجيه لتحميل الملف")
+            val totalBytes = connection.contentLength.toLong()
+
+            // تخزين الملف في مجلد التحميلات الخارجية أو الكاش المتاح
+            val updateDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.cacheDir, "updates").apply {
+                if (!exists()) mkdirs()
+            }
+            val apkFile = File(updateDir, "EchoOfBattle.apk")
             if (apkFile.exists()) apkFile.delete()
 
-            redirectConnection.inputStream.use { input ->
+            var lastReportTime = 0L
+            var lastReportProgress = 0f
+
+            connection.inputStream.use { input ->
                 FileOutputStream(apkFile).use { output ->
-                    val buffer = ByteArray(8192)
+                    val buffer = ByteArray(32768) // 32KB لتنزيل سريع وسلس
                     var bytesRead: Int
                     var totalDownloaded = 0L
 
@@ -286,10 +311,22 @@ class AppUpdateManager(private val context: Context) {
                         output.write(buffer, 0, bytesRead)
                         totalDownloaded += bytesRead
                         val progress = if (totalBytes > 0) totalDownloaded.toFloat() / totalBytes else 0.5f
-                        _downloadState.value = DownloadState.Downloading(progress, totalDownloaded, totalBytes)
+                        val now = System.currentTimeMillis()
+                        // تحديث الحالة كل 200 مللي ثانية لمنع تهنيج واجهة Compose
+                        if (now - lastReportTime > 200 || (progress - lastReportProgress) > 0.05f) {
+                            lastReportTime = now
+                            lastReportProgress = progress
+                            _downloadState.value = DownloadState.Downloading(progress, totalDownloaded, totalBytes)
+                        }
                     }
+                    output.flush()
                 }
             }
+            connection.disconnect()
+
+            // ضبط أذونات الملف للقراءة العامة بواسطة نظام التثبيت
+            apkFile.setReadable(true, false)
+            lastDownloadedApk = apkFile
 
             Log.i(TAG, "APK download complete: ${apkFile.absolutePath}, size=${apkFile.length()} bytes")
             _downloadState.value = DownloadState.Downloaded(apkFile)
@@ -299,27 +336,61 @@ class AppUpdateManager(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error downloading APK", e)
-            _downloadState.value = DownloadState.Error("تعذر إكمال التنزيل: تأكد من اتصال الإنترنت.")
+            _downloadState.value = DownloadState.Error("تعذر إكمال التنزيل: ${e.localizedMessage ?: "تحقق من اتصال الإنترنت."}")
         }
     }
 
     /**
-     * تشغيل معالج تثبيت الحزم التابع لنظام أندرويد
+     * طلب إذن تثبيت التطبيقات غير المعروفة
+     */
+    fun requestInstallPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(settingsIntent)
+            } catch (e: Exception) {
+                try {
+                    val fallbackIntent = Intent(Settings.ACTION_SECURITY_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(fallbackIntent)
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    /**
+     * فحص واستئناف التثبيت تلقائياً عند عودة المستخدم من شاشة الإعدادات
+     */
+    fun checkAndResumePendingInstall() {
+        val apk = lastDownloadedApk ?: return
+        if (apk.exists() && apk.length() > 0) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()) {
+                installApk(apk)
+            }
+        }
+    }
+
+    /**
+     * تشغيل معالج تثبيت الحزم التابع لنظام أندرويد بأسلوب مرن ومتوافق مع جميع الهواتف
      */
     fun installApk(file: File) {
         try {
             if (!file.exists() || file.length() == 0L) {
-                _downloadState.value = DownloadState.Error("ملف التحديث غير موجود")
+                _downloadState.value = DownloadState.Error("ملف التحديث غير موجود، يرجى إعادة المحاولة.")
                 return
             }
 
+            file.setReadable(true, false)
+            lastDownloadedApk = file
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (!context.packageManager.canRequestPackageInstalls()) {
-                    val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                        data = Uri.parse("package:${context.packageName}")
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                    context.startActivity(settingsIntent)
+                    _downloadState.value = DownloadState.PermissionRequired(file)
+                    requestInstallPermission()
                     return
                 }
             }
@@ -329,13 +400,39 @@ class AppUpdateManager(private val context: Context) {
 
             val installIntent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(apkUri, "application/vnd.android.package-archive")
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
+            }
+
+            // منح الأذونات صراحة لكافة التطبيقات التي يمكنها تثبيت الحزم
+            val resolveInfos = context.packageManager.queryIntentActivities(installIntent, PackageManager.MATCH_DEFAULT_ONLY)
+            for (resolveInfo in resolveInfos) {
+                context.grantUriPermission(
+                    resolveInfo.activityInfo.packageName,
+                    apkUri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
             }
 
             context.startActivity(installIntent)
+            _downloadState.value = DownloadState.Downloaded(file)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to launch package installer", e)
-            _downloadState.value = DownloadState.Error("تعذر فتح معالج التثبيت: ${e.localizedMessage}")
+            try {
+                val altAuthority = "${context.packageName}.fileprovider"
+                val altUri = FileProvider.getUriForFile(context, altAuthority, file)
+                val altIntent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
+                    data = altUri
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
+                }
+                context.startActivity(altIntent)
+            } catch (e2: Exception) {
+                _downloadState.value = DownloadState.Error("تعذر فتح أداة تثبيت الحزم: ${e.localizedMessage}. يمكنك تثبيته عبر المتصفح.")
+            }
         }
     }
 

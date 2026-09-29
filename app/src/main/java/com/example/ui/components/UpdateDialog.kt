@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,21 +17,27 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -49,9 +57,23 @@ fun UpdateDialog(
     updateInfo: UpdateInfo,
     downloadState: DownloadState,
     onConfirmUpdate: () -> Unit,
+    onRequestPermission: () -> Unit,
+    onRetryInstall: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     val isDownloading = downloadState is DownloadState.Downloading
+    val isDownloaded = downloadState is DownloadState.Downloaded
+    val isPermissionRequired = downloadState is DownloadState.PermissionRequired
+
+    val openInBrowser: () -> Unit = {
+        try {
+            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.apkDownloadUrl)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(browserIntent)
+        } catch (_: Exception) {}
+    }
 
     AlertDialog(
         onDismissRequest = {
@@ -62,18 +84,29 @@ fun UpdateDialog(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(
+                        when (downloadState) {
+                            is DownloadState.Error -> MaterialTheme.colorScheme.errorContainer
+                            is DownloadState.Downloaded -> Color(0xFFE8F5E9)
+                            is DownloadState.PermissionRequired -> Color(0xFFFFF3E0)
+                            else -> MaterialTheme.colorScheme.primaryContainer
+                        }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                androidx.compose.material3.Icon(
+                Icon(
                     imageVector = when (downloadState) {
                         is DownloadState.Error -> Icons.Default.ErrorOutline
                         is DownloadState.Downloading -> Icons.Default.Download
+                        is DownloadState.Downloaded -> Icons.Default.CheckCircle
+                        is DownloadState.PermissionRequired -> Icons.Default.Security
                         else -> Icons.Default.SystemUpdate
                     },
                     contentDescription = null,
                     tint = when (downloadState) {
                         is DownloadState.Error -> MaterialTheme.colorScheme.error
+                        is DownloadState.Downloaded -> Color(0xFF2E7D32)
+                        is DownloadState.PermissionRequired -> Color(0xFFE65100)
                         else -> MaterialTheme.colorScheme.primary
                     },
                     modifier = Modifier.size(32.dp)
@@ -82,7 +115,13 @@ fun UpdateDialog(
         },
         title = {
             Text(
-                text = if (updateInfo.isUpdateAvailable) "يتوفر تحديث جديد!" else "أحدث إصدار متوفر (${updateInfo.latestVersionName})",
+                text = when {
+                    downloadState is DownloadState.PermissionRequired -> "مطلوب إذن التثبيت"
+                    downloadState is DownloadState.Downloaded -> "جاهز للتثبيت!"
+                    downloadState is DownloadState.Downloading -> "جاري تنزيل التحديث..."
+                    updateInfo.isUpdateAvailable -> "يتوفر تحديث جديد!"
+                    else -> "أحدث إصدار متوفر (${updateInfo.latestVersionName})"
+                },
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -102,10 +141,19 @@ fun UpdateDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = if (updateInfo.isUpdateAvailable) {
-                        "يتوفر الإصدار الأحدث ${updateInfo.latestVersionName} في المستودع. هل تريد التحديث والتثبيت الآن؟"
-                    } else {
-                        "أحدث ملف APK للعبة متاح وجاهز للتثبيت المباشر (${updateInfo.latestVersionName}). هل تريد تنزيله وتثبيته الآن؟"
+                    text = when (downloadState) {
+                        is DownloadState.PermissionRequired ->
+                            "يتطلب نظام أندرويد السماح للعبة بتثبيت التحديثات. انقر على الزر بالأسفل لفتح الإعدادات وتفعيل (السماح من هذا المصدر)، وسيتم فتح مثبت الحزم فوراً عند عودتك."
+                        is DownloadState.Downloaded ->
+                            "تم تنزيل حزمة التحديث بنجاح! يتم الآن فتح أداة تثبيت الحزم على هاتفك. إذا لم تظهر شاشة التثبيت تلقائياً، انقر على زر (تثبيت التحديث الآن)."
+                        is DownloadState.Downloading ->
+                            "جاري تنزيل التحديث من المستودع مباشرة، يرجى الانتظار لحين اكتمال التحميل..."
+                        else ->
+                            if (updateInfo.isUpdateAvailable) {
+                                "يتوفر الإصدار الأحدث ${updateInfo.latestVersionName} في المستودع. هل تريد التحديث والتثبيت الآن؟"
+                            } else {
+                                "أحدث ملف APK للعبة متاح وجاهز للتثبيت المباشر (${updateInfo.latestVersionName}). هل تريد تنزيله وتثبيته الآن؟"
+                            }
                     },
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -129,7 +177,7 @@ fun UpdateDialog(
                     )
                 }
 
-                // عرض تفاصيل وحالة التنزيل
+                // عرض شريط تقدم التنزيل
                 AnimatedVisibility(visible = downloadState is DownloadState.Downloading) {
                     if (downloadState is DownloadState.Downloading) {
                         Column(
@@ -143,7 +191,7 @@ fun UpdateDialog(
                             val totalMb = downloadState.totalBytes / (1024f * 1024f)
 
                             LinearProgressIndicator(
-                                progress = { downloadState.progress.coerceIn(0f, 1f) },
+                                progress = { downloadState.progress.coerceIn(0.02f, 1f) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(8.dp)
@@ -205,11 +253,37 @@ fun UpdateDialog(
                         }
                     }
                 }
+
+                // زر بديل دائم وموثوق: التحميل المباشر عبر المتصفح
+                Spacer(modifier = Modifier.height(12.dp))
+                TextButton(
+                    onClick = openInBrowser,
+                    modifier = Modifier.semantics {
+                        contentDescription = "فتح رابط التحميل المباشر في متصفح الهاتف"
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.OpenInBrowser,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "تحميل مباشر عبر المتصفح",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = onConfirmUpdate,
+                onClick = when {
+                    downloadState is DownloadState.PermissionRequired -> onRequestPermission
+                    downloadState is DownloadState.Downloaded -> onRetryInstall
+                    else -> onConfirmUpdate
+                },
                 enabled = !isDownloading,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -218,13 +292,16 @@ fun UpdateDialog(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .semantics {
-                        contentDescription = "تنزيل وتثبيت ملف APK للعبة"
+                        contentDescription = "تأكيد إجراء التحديث"
                     }
                     .testTag("update_confirm_button")
             ) {
                 Text(
                     text = when {
+                        downloadState is DownloadState.PermissionRequired -> "فتح الإعدادات لمنح الإذن"
+                        downloadState is DownloadState.Downloaded -> "تثبيت التحديث الآن"
                         downloadState is DownloadState.Error -> "إعادة المحاولة"
+                        downloadState is DownloadState.Downloading -> "جاري التنزيل..."
                         updateInfo.isUpdateAvailable -> "تحديث وتثبيت الآن"
                         else -> "تنزيل وتثبيت الآن"
                     },
@@ -245,7 +322,7 @@ fun UpdateDialog(
                     .testTag("update_cancel_button")
             ) {
                 Text(
-                    text = "إلغاء",
+                    text = if (isDownloaded) "إغلاق" else "إلغاء",
                     fontWeight = FontWeight.Medium,
                     fontSize = 15.sp
                 )

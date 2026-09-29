@@ -72,6 +72,8 @@ class MainActivity : ComponentActivity() {
                                 updateInfo = updateInfo!!,
                                 downloadState = downloadState,
                                 onConfirmUpdate = { viewModel.startAppUpdate() },
+                                onRequestPermission = { viewModel.requestInstallPermission() },
+                                onRetryInstall = { viewModel.retryInstallApk() },
                                 onDismiss = { viewModel.dismissUpdateDialog() }
                             )
                         }
@@ -79,5 +81,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // استئناف تثبيت التحديث تلقائياً فور منح الإذن من الإعدادات والعودة إلى اللعبة
+        viewModel.checkAndResumePendingInstall()
     }
 }
