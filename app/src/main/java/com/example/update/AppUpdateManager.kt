@@ -248,7 +248,10 @@ class AppUpdateManager(private val context: Context) {
     /**
      * تنزيل ملف الـ APK وتثبيته مباشرة للمستخدم بنقرة واحدة
      */
-    suspend fun downloadAndInstall(apkUrl: String) = withContext(Dispatchers.IO) {
+    suspend fun downloadAndInstall(
+        apkUrl: String,
+        onDownloaded: ((File) -> Unit)? = null
+    ) = withContext(Dispatchers.IO) {
         if (apkUrl.isBlank()) {
             _downloadState.value = DownloadState.Error("رابط التحديث غير متوفر حالياً.")
             return@withContext
@@ -324,15 +327,20 @@ class AppUpdateManager(private val context: Context) {
             }
             connection.disconnect()
 
-            // ضبط أذونات الملف للقراءة العامة بواسطة نظام التثبيت
+            // ضبط أذونات الملف للقراءة والكتابة العامة بواسطة نظام التثبيت
             apkFile.setReadable(true, false)
+            apkFile.setWritable(true, false)
             lastDownloadedApk = apkFile
 
             Log.i(TAG, "APK download complete: ${apkFile.absolutePath}, size=${apkFile.length()} bytes")
             _downloadState.value = DownloadState.Downloaded(apkFile)
 
             withContext(Dispatchers.Main) {
-                installApk(apkFile)
+                if (onDownloaded != null) {
+                    onDownloaded(apkFile)
+                } else {
+                    installApk(apkFile)
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error downloading APK", e)

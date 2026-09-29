@@ -106,6 +106,21 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val _showUpdateDialog = MutableStateFlow(false)
     val showUpdateDialog: StateFlow<Boolean> = _showUpdateDialog.asStateFlow()
 
+    private val _hasInstallPermission = MutableStateFlow(
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            application.packageManager.canRequestPackageInstalls()
+        } else {
+            true
+        }
+    )
+    val hasInstallPermission: StateFlow<Boolean> = _hasInstallPermission.asStateFlow()
+
+    fun updateInstallPermissionStatus() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            _hasInstallPermission.value = getApplication<android.app.Application>().packageManager.canRequestPackageInstalls()
+        }
+    }
+
     val currentUser: StateFlow<UserEntity?> = repository.currentUser
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
@@ -933,12 +948,18 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startAppUpdate() {
+    fun startAppUpdate(onApkReady: ((java.io.File) -> Unit)? = null) {
         val info = _updateInfo.value ?: return
         audioEngine.playUiClick()
         narratorEngine.speak("جاري تنزيل ملف التحديث وتثبيته الآن...")
         viewModelScope.launch {
-            updateManager.downloadAndInstall(info.apkDownloadUrl)
+            updateManager.downloadAndInstall(info.apkDownloadUrl) { file ->
+                if (onApkReady != null) {
+                    onApkReady(file)
+                } else {
+                    updateManager.installApk(file)
+                }
+            }
         }
     }
 
