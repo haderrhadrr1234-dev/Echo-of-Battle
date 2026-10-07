@@ -1,6 +1,8 @@
 {
-  "version": "2.0.2",
-  "title": "الإصدار المطور 2.0.2 - صدى المعركة (Echo of Battle)",
-  "notes": "إصلاح شامل للتنزيل المباشر والتثبيت التلقائي عبر مثبت الحزم وتفعيل استئناف التثبيت، والتحميل المباشر عبر المتصفح.",
-  "download_url": "https://github.com/haderrhadrr1234-dev/Echo-of-Battle/releases/download/v2.0.2/EchoOfBattle.apk"
+  "version": "3.0.0",
+  "version_code": 300,
+  "title": "⚔️ تحديث صدى المعركة v3.0.0",
+  "notes": "أصوات جديدة احترافية بالكامل لكل الأسلحة والوحوش والرفقاء والقوى الخارقة، مع ترقية التحديث التلقائي.",
+  "download_url": "https://github.com/haderrhadrr1234-dev/Echo-of-Battle/releases/download/v3.0.0/EchoOfBattle.apk",
+  "force_update": false
 }
